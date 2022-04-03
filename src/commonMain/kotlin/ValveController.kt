@@ -12,26 +12,26 @@ class ElectricValveController(val openRelay: ElectricRelay, val closeRelay: Elec
 
     suspend fun open() {
         state = ValveState.opening
-        closeRelay.deactivate()
-        openRelay.activate()
+        closeRelay.openCircuit()
+        openRelay.closeCircuit()
         delay(5.seconds) // TODO parameter
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.opening) {
                 state = ValveState.open
-                openRelay.deactivate() // optional ?
+                openRelay.openCircuit() // optional ?
             }
         //}
     }
 
     suspend fun close() {
         state = ValveState.closing
-        openRelay.deactivate()
-        closeRelay.activate()
+        openRelay.openCircuit()
+        closeRelay.closeCircuit()
         delay(5.seconds) // TODO parameter
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.closing) {
                 state = ValveState.closed
-                closeRelay.deactivate() // optional ?
+                closeRelay.openCircuit() // optional ?
             }
         //}
     }

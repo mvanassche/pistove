@@ -20,7 +20,10 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main() {
 
-    val valve = ElectricValveController(TestRelay("open"), TestRelay("close"))
+    val display = Display1602LCDI2C(1, 0x27)
+    val openRelay = GPIOElectricRelay(23)
+    val closeRelay = GPIOElectricRelay(24)
+    val valve = ElectricValveController(openRelay = openRelay, closeRelay = closeRelay)
     val chimney = TestTemperatureSensor("chimney")
     //val room = TMPDS18B20TemperatureSensor()
     val room = TestTemperatureSensor("room")
@@ -30,42 +33,15 @@ fun main() {
     val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
     startWebServer(stove)
     runBlocking {
-        stove.startControlling()
+        launch { stove.startControlling() }
+        launch {
+            while(true) {
+                delay(5000)
+                display.display(stove.stateMessage())
+            }
+        }
     }
 
-
-
-    /*
-    val xxx = MutableSharedFlow<InstantValue<BigDecimal>>(100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-
-    var sx = 125.25
-    (0..1000).map { Random.nextDouble(10.0) }
-    val x = InstantValue(125.25, Instant.now())
-    println(Json.encodeToString(x))
-
-
-
-    var pi4j = Pi4J.newAutoContext();
-    val platforms = pi4j.platforms()
-
-    platforms.describe().print(System.out)
-
-    val PIN_LED = 22; // PIN 15 = BCM 22
-
-    var ledConfig = DigitalOutput.newConfigBuilder(pi4j)
-        .id("led")
-        .name("LED Flasher")
-        .address(PIN_LED)
-        .shutdown(DigitalState.LOW)
-        .initial(DigitalState.LOW)
-    //.provider("pigpio-digital-output");
-
-    var led = pi4j.create(ledConfig);
-    led.blink(3, TimeUnit.SECONDS)
-
-    pi4j.shutdown();
-
-     */
 }
 
 
@@ -107,6 +83,9 @@ fun startWebServer(stove: StoveController) {
             get("/auto") {
                 launch { stove.auto() }
                 call.respondText("auto engaged")
+            }
+            get("/shutdown") {
+                System.exit(0)
             }
             webSocket("/stove") {
                 while(true) {

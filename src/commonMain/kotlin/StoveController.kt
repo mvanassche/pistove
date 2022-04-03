@@ -44,7 +44,7 @@ class StoveController(
     }
 
     suspend fun stateMessage(): String {
-        return "${valve.stateMessage()} 💨 ${fumes.stateMessage()} Room ${room.stateMessage()}"
+        return "${valve.stateMessage()} ${fumes.stateMessage()} ${room.stateMessage()}"
     }
 
     // TODO generalize this? be creative here maybe these business objects should be part of the state of the controller, being updated permanently??

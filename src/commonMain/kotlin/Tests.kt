@@ -1,4 +1,5 @@
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlin.time.Duration
@@ -22,19 +23,20 @@ class TestTemperatureSensor(val name: String) : BaseTemperatureSensor() {
         delay(delay)
 
         i += 0.05
-        return (((sin(i) + 1) * 500.0) + Random.nextDouble(50.0))
+        return (((sin(i) + 1) * 500.0) + Random.nextDouble(50.0)).roundToInt().toDouble()
             .also { println("$name: $it°C") }
     }
 }
 
 class TestRelay(val name: String) : ElectricRelay {
-    var activated = false
-    override fun activate() {
-        activated = true
+    override var state: RelayState = RelayState.open_circuit
+
+    override fun closeCircuit() {
+        state = RelayState.closed_circuit
         println("activate $name")
     }
-    override fun deactivate() {
-        activated = false
+    override fun openCircuit() {
+        state = RelayState.open_circuit
         println("deactivate $name")
     }
 }

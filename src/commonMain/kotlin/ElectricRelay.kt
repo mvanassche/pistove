@@ -1,4 +1,8 @@
+
+enum class RelayState { closed_circuit, open_circuit }
 interface ElectricRelay: Actuator {
-    fun activate()
-    fun deactivate()
+    // TODO decide between var vs functions!
+    val state: RelayState
+    fun closeCircuit()
+    fun openCircuit()
 }
