@@ -20,9 +20,10 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main() {
 
-    val display = Display1602LCDI2C(1, 0x27)
     val openRelay = GPIOElectricRelay(23)
     val closeRelay = GPIOElectricRelay(24)
+    //val openRelay = TestRelay("open")
+    //val closeRelay = TestRelay("close")
     val valve = ElectricValveController(openRelay = openRelay, closeRelay = closeRelay)
     val chimney = TestTemperatureSensor("chimney")
     //val room = TMPDS18B20TemperatureSensor()
@@ -35,9 +36,15 @@ fun main() {
     runBlocking {
         launch { stove.startControlling() }
         launch {
+            val display = Display1602LCDI2C(1, 0x27)
             while(true) {
                 delay(5000)
                 display.display(stove.stateMessage())
+                /*if(valve.state != ValveState.closed && !display.illuminatedBackLight) {
+                    display.illuminatedBackLight = true
+                } else if(display.illuminatedBackLight) {
+                    display.illuminatedBackLight = false
+                }*/
             }
         }
     }
@@ -63,11 +70,25 @@ fun startWebServer(stove: StoveController) {
                         title {
                             +"Stove controller"
                         }
-                        script(src = "/static/stove.js") {}
+                        script(src = "/static/pistove.js") {}
                     }
                     body {
                         div {
                             id = "status"
+                        }
+                        div {
+                            button {
+                                onClick = "fetch('/open')"
+                                +"open"
+                            }
+                            button {
+                                onClick = "fetch('/close')"
+                                +"close"
+                            }
+                            button {
+                                onClick = "fetch('/auto')"
+                                +"auto"
+                            }
                         }
                     }
                 }
