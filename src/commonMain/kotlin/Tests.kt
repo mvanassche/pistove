@@ -24,7 +24,7 @@ class TestTemperatureSensor(val name: String) : BaseTemperatureSensor() {
 
         i += 0.05
         return (((sin(i) + 1) * 500.0) + Random.nextDouble(50.0)).roundToInt().toDouble()
-            .also { println("$name: $it°C") }
+             //.also { println("$name: $it°C") }
     }
 }
 

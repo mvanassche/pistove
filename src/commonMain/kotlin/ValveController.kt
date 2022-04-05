@@ -5,6 +5,8 @@ enum class ValveState { open, opening, closing, closed }
 
 class ElectricValveController(val openRelay: ElectricRelay, val closeRelay: ElectricRelay) : State<ValveState?>, Controller {
 
+    val timeout = 160.seconds // TODO persistent parameter.
+
     val pstate: PersistentState<ValveState?> = PersistentState(null)
     override var state: ValveState?
         get() = pstate.state
@@ -14,7 +16,7 @@ class ElectricValveController(val openRelay: ElectricRelay, val closeRelay: Elec
         state = ValveState.opening
         closeRelay.openCircuit()
         openRelay.closeCircuit()
-        delay(5.seconds) // TODO parameter
+        delay(timeout)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.opening) {
                 state = ValveState.open
@@ -27,7 +29,7 @@ class ElectricValveController(val openRelay: ElectricRelay, val closeRelay: Elec
         state = ValveState.closing
         openRelay.openCircuit()
         closeRelay.closeCircuit()
-        delay(5.seconds) // TODO parameter
+        delay(timeout)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.closing) {
                 state = ValveState.closed

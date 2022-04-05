@@ -16,25 +16,25 @@ class GPIOElectricRelay(gpioPin: Int, shutdownState: RelayState? = RelayState.op
     override val state: RelayState
         get() {
             return when(output.state()) {
-                DigitalState.HIGH -> RelayState.closed_circuit
-                DigitalState.LOW -> RelayState.open_circuit
+                DigitalState.HIGH -> RelayState.open_circuit
+                DigitalState.LOW -> RelayState.closed_circuit
                 else -> RelayState.open_circuit // ???
             }
         }
 
     fun relayStateToDigitalState(state: RelayState): DigitalState {
         return when(state) {
-            RelayState.closed_circuit -> DigitalState.HIGH
-            RelayState.open_circuit -> DigitalState.LOW
+            RelayState.closed_circuit -> DigitalState.LOW
+            RelayState.open_circuit -> DigitalState.HIGH
         }
     }
 
     override fun closeCircuit() {
-        output.high()
+        output.low()
     }
 
     override fun openCircuit() {
-        output.low()
+        output.high()
     }
 }
 
