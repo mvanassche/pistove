@@ -4,7 +4,7 @@
  * Controller: Anything that has the capability to affect a physical entity, like changing its state or moving it.
  */
 interface Controller {
-    suspend fun startControlling()
+    suspend fun startControlling(): Boolean
 }
 
 /**

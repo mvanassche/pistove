@@ -32,15 +32,16 @@ fun main() {
     /*val openButton = TestButton("open button")
     val closeButton = TestButton("close button")
     val autoButton = TestButton("auto button")*/
+    val buzzer = PassivePiezoBuzzerHardwarePWM(12)
     val openButton = PushButtonGPIO(13)
     val closeButton = PushButtonGPIO(26)
     val autoButton = PushButtonGPIO(19)
-    val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
+    val display = Display1602LCDI2C(1, 0x27)
+    val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
     startWebServer(stove)
     runBlocking {
         launch { stove.startControlling() }
         launch {
-            val display = Display1602LCDI2C(1, 0x27)
             while(true) {
                 delay(5000)
                 display.display(stove.stateMessage())

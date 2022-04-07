@@ -14,7 +14,6 @@ class LowActiveGPIOElectricRelay(gpioPin: Int, defaultState: RelayState = RelayS
             .initial(relayStateToDigitalState(defaultState))
             .shutdown(relayStateToDigitalState(defaultState))
         output = pi4j.dout<DigitalOutputProvider>().create(config)
-        output.addListener(System.out::println)
     }
 
     override val state: RelayState

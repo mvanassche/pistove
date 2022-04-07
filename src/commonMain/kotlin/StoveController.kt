@@ -10,14 +10,15 @@ class StoveController(
     val room: TemperatureSensor,
     val openButton: PushButton,
     val closeButton: PushButton,
-    val autoButton: PushButton
+    val autoButton: PushButton,
+    val userCommunication: BasicUserCommunication
 ) : Controller {
     val autoModeController: AutoModeController
     init { // TODO ? move this into a start function (all controllers? interface?)
         autoModeController = CloseWhenCold(valve, fumes) // TODO make the choice of controller parametric?
     }
 
-    override suspend fun startControlling() {
+    override suspend fun startControlling(): Boolean {
         // ??? what to do? should we start all here or assume they are started elsewhere?
         coroutineScope {
             launch { valve.startControlling() }
@@ -31,6 +32,7 @@ class StoveController(
             autoButton.addOnClickListener { this.launch { auto() } }
             while(true) delay(100000) // TODO: find something better? wait until stopControlling is called?
         }
+        return true
     }
 
     fun stopControlling() {
@@ -38,15 +40,26 @@ class StoveController(
     }
 
     suspend fun open() {
-        valve.open()
+        userCommunication.acknowledge()
+        if(valve.open()) {
+            userCommunication.acknowledge()
+        }
     }
 
     suspend fun close() {
-        valve.close()
+        userCommunication.acknowledge()
+        if(valve.close()) {
+            userCommunication.acknowledge()
+        }
     }
 
     suspend fun auto() {
-        autoModeController.startControlling()
+        userCommunication.acknowledge() // TODO only ackownledge when it is engaged for real!!?? return on startControlling!
+        if(autoModeController.startControlling()) {
+            userCommunication.acknowledge()
+        } else {
+            userCommunication.alert()
+        }
     }
 
     suspend fun stateMessage(): String {
@@ -71,18 +84,19 @@ sealed class AutoModeController : Controller {
 }
 
 class CloseWhenCold(override val valve: ElectricValveController, override val fumes: TemperatureSensor) : AutoModeController() {
-    override suspend fun startControlling() {
+    override suspend fun startControlling(): Boolean {
         when(valve.state) {
             ValveState.open -> {
                 if(fumes.currentValue(10.toDuration(DurationUnit.SECONDS)) > 300.0) {// TODO parametric
                     fumes.waitForCurrentValueCondition(10.toDuration(DurationUnit.SECONDS)) { it < 200.0 } // TODO parametric
-                    valve.close()
+                    return valve.close()
                 } else {
                     // TODO state change? nothing done, this is a dumb controller, please launch it again when stove is hot.
                 }
             }
             else -> { } // TODO state change? nothing done, this is a dumb controller, please launch it again when stove open and hot.
         }
+        return false
     }
 }
 

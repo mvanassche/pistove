@@ -12,7 +12,7 @@ class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay:
         get() = pstate.state
         set(value) { pstate.state = value }
 
-    suspend fun open() {
+    suspend fun open(): Boolean {
         state = ValveState.opening
         openCloseRelay.deactivate()
         powerRelay.activate()
@@ -21,11 +21,14 @@ class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay:
             if(state == ValveState.opening) {
                 state = ValveState.open
                 powerRelay.deactivate() // optional ?
+                return true
+            } else {
+                return false
             }
         //}
     }
 
-    suspend fun close() {
+    suspend fun close(): Boolean {
         state = ValveState.closing
         openCloseRelay.activate()
         powerRelay.activate()
@@ -34,13 +37,17 @@ class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay:
             if(state == ValveState.closing) {
                 state = ValveState.closed
                 powerRelay.deactivate() // optional ?
+                return true
+            } else {
+                return false
             }
         //}
     }
 
 
-    override suspend fun startControlling() {
+    override suspend fun startControlling(): Boolean {
         // TODO start() check the state, and activate/deactivate depending on it for consistency with physical state: if closing, call close, if opening, call open
+        return true
     }
 
     suspend fun stateMessage(): String {

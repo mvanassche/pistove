@@ -20,7 +20,6 @@ class PushButtonGPIO(val gpioPin: Int): PushButton() {
             .provider("pigpio-digital-input")
         val button: DigitalInput = pi4j.create(buttonConfig)
         button.addListener({ e ->
-            println("Pushbutton $gpioPin state ${e.state()}")
             if (e.state() === DigitalState.LOW) {
                 pushed()
             }
