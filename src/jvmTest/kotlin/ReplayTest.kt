@@ -11,6 +11,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import java.time.Duration
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -32,7 +33,7 @@ class ReplayTest {
 
                 launch { closeButton.push() }
                 delay(10000)
-                assertTrue { valve.state == ValveState.closed }
+                assertEquals(ValveState.closed, valve.state)
                 launch { openButton.push() }
                 delay(10000)
                 assertTrue { valve.state == ValveState.open }

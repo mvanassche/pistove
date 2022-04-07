@@ -17,11 +17,11 @@ abstract class BaseTemperatureSensor: BaseSamplingValuesSensor<Double>(0.0), Tem
 
 
 abstract class PushButton : Sensor {
-    val listeners = mutableListOf<suspend () -> Unit>()
-    fun addOnClickListener(listener: suspend () -> Unit) {
+    val listeners = mutableListOf<() -> Unit>()
+    fun addOnClickListener(listener: () -> Unit) {
         listeners.add(listener)
     }
-    protected suspend fun pushed() {
+    protected fun pushed() {
         listeners.forEach { it() }
     }
 }

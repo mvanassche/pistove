@@ -1,9 +1,10 @@
 
 class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = false) : StringDisplay, BackLightDisplay {
-    val lcd = I2CLCD("LCD", "LCD", bus, device)
+    val lcd = I2CLCD("LCD", "LCD", bus, device).also {
+        it.clear()
+    }
 
     override fun display(value: String) {
-        //lcd.clear()
         if(value.length > 16) {
             var splitAt = value.substring(0, 16).indexOfLast { it.isWhitespace() }
             if (splitAt == -1) {

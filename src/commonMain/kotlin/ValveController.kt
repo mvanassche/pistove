@@ -3,7 +3,7 @@ import kotlin.time.Duration.Companion.seconds
 
 enum class ValveState { open, opening, closing, closed }
 
-class ElectricValveController(val openRelay: ElectricRelay, val closeRelay: ElectricRelay) : State<ValveState?>, Controller {
+class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay) : State<ValveState?>, Controller {
 
     val timeout = 160.seconds // TODO persistent parameter.
 
@@ -14,26 +14,26 @@ class ElectricValveController(val openRelay: ElectricRelay, val closeRelay: Elec
 
     suspend fun open() {
         state = ValveState.opening
-        closeRelay.openCircuit()
-        openRelay.closeCircuit()
+        openCloseRelay.openCircuit()
+        powerRelay.closeCircuit()
         delay(timeout)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.opening) {
                 state = ValveState.open
-                openRelay.openCircuit() // optional ?
+                powerRelay.openCircuit() // optional ?
             }
         //}
     }
 
     suspend fun close() {
         state = ValveState.closing
-        openRelay.openCircuit()
-        closeRelay.closeCircuit()
+        openCloseRelay.closeCircuit()
+        powerRelay.closeCircuit()
         delay(timeout)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.closing) {
                 state = ValveState.closed
-                closeRelay.openCircuit() // optional ?
+                powerRelay.openCircuit() // optional ?
             }
         //}
     }

@@ -1,4 +1,5 @@
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -22,13 +23,18 @@ class StoveController(
             launch { valve.startControlling() }
             launch { fumes.startSensing() }
             launch { room.startSensing() }
-            openButton.addOnClickListener { open() }
             launch { openButton.startSensing() }
-            closeButton.addOnClickListener { close() }
             launch { closeButton.startSensing() }
-            autoButton.addOnClickListener { auto() }
             launch { autoButton.startSensing() }
+            openButton.addOnClickListener { this.launch { open() } }
+            closeButton.addOnClickListener { this.launch { close() } }
+            autoButton.addOnClickListener { this.launch { auto() } }
+            while(true) delay(100000) // TODO: find something better? wait until stopControlling is called?
         }
+    }
+
+    fun stopControlling() {
+
     }
 
     suspend fun open() {

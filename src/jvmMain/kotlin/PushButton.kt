@@ -3,7 +3,9 @@ import com.pi4j.io.gpio.digital.DigitalInput
 import com.pi4j.io.gpio.digital.DigitalState
 import com.pi4j.io.gpio.digital.PullResistance
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 
 class PushButtonGPIO(val gpioPin: Int): PushButton() {
@@ -17,12 +19,27 @@ class PushButtonGPIO(val gpioPin: Int): PushButton() {
             .debounce(3000L)
             .provider("pigpio-digital-input")
         val button: DigitalInput = pi4j.create(buttonConfig)
-        coroutineScope {
-            button.addListener({ e ->
-                if (e.state() === DigitalState.LOW) {
-                    this.launch { pushed() }
-                }
-            })
+        button.addListener({ e ->
+            println("Pushbutton $gpioPin state ${e.state()}")
+            if (e.state() === DigitalState.LOW) {
+                pushed()
+            }
+        })
+    }
+}
+
+fun main(vararg args: String) {
+    runBlocking {
+        println("Testing push buttons")
+        args.forEach {
+            println("Create push button $it")
+            val button = PushButtonGPIO(it.toInt())
+            button.addOnClickListener { println("Pushed $it") }
+            launch {
+                println("Starting push button $it")
+                button.startSensing()
+            }
         }
+        while (true) delay(1000)
     }
 }

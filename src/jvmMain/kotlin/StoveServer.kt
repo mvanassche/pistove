@@ -20,17 +20,21 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main() {
 
-    val openRelay = GPIOElectricRelay(23)
-    val closeRelay = GPIOElectricRelay(24)
+    val powerRelay = GPIOElectricRelay(5)
+    val openCloseRelay = GPIOElectricRelay(6)
     //val openRelay = TestRelay("open")
     //val closeRelay = TestRelay("close")
-    val valve = ElectricValveController(openRelay = openRelay, closeRelay = closeRelay)
-    val chimney = TestTemperatureSensor("chimney")
+    val valve = ElectricValveController(powerRelay = powerRelay, openCloseRelay = openCloseRelay)
+    //val chimney = TestTemperatureSensor("chimney")
+    val chimney = MAX31855TemperaturSensor(0)
     //val room = TMPDS18B20TemperatureSensor()
     val room = TestTemperatureSensor("room")
-    val openButton = TestButton("open button")
+    /*val openButton = TestButton("open button")
     val closeButton = TestButton("close button")
-    val autoButton = TestButton("auto button")
+    val autoButton = TestButton("auto button")*/
+    val openButton = PushButtonGPIO(13)
+    val closeButton = PushButtonGPIO(26)
+    val autoButton = PushButtonGPIO(19)
     val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
     startWebServer(stove)
     runBlocking {
