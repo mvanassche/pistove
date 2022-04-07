@@ -20,8 +20,8 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main() {
 
-    val powerRelay = GPIOElectricRelay(5)
-    val openCloseRelay = GPIOElectricRelay(6)
+    val powerRelay = LowActiveGPIOElectricRelay(5)
+    val openCloseRelay = LowActiveGPIOElectricRelay(6)
     //val openRelay = TestRelay("open")
     //val closeRelay = TestRelay("close")
     val valve = ElectricValveController(powerRelay = powerRelay, openCloseRelay = openCloseRelay)

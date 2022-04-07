@@ -29,14 +29,14 @@ class TestTemperatureSensor(val name: String) : BaseTemperatureSensor() {
 }
 
 class TestRelay(val name: String) : ElectricRelay {
-    override var state: RelayState = RelayState.open_circuit
+    override var state: RelayState = RelayState.inactive
 
-    override fun closeCircuit() {
-        state = RelayState.closed_circuit
+    override fun activate() {
+        state = RelayState.activated
         println("activate $name")
     }
-    override fun openCircuit() {
-        state = RelayState.open_circuit
+    override fun deactivate() {
+        state = RelayState.inactive
         println("deactivate $name")
     }
 }
