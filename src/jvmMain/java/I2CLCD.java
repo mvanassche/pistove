@@ -10,7 +10,7 @@ public class I2CLCD {
 
     public I2CLCD(String id, String name, Integer bus, Integer device) {
         synchronized(I2CLock.synchOnMe) {
-            var pi4j = Pi4J.newAutoContext();
+            var pi4j = Pi4KKt.getContext();
 
             // create I2C config
             var config = I2C.newConfigBuilder(pi4j)

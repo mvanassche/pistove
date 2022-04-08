@@ -8,12 +8,11 @@ import com.pi4j.io.gpio.digital.DigitalState
 class LowActiveGPIOElectricRelay(gpioPin: Int, defaultState: RelayState = RelayState.inactive) : ElectricRelay {
     val output: DigitalOutput
     init {
-        val pi4j = Pi4J.newAutoContext()
-        val config = DigitalOutput.newConfigBuilder(pi4j)
+        val config = DigitalOutput.newConfigBuilder(context)
             .address(gpioPin)
             .initial(relayStateToDigitalState(defaultState))
             .shutdown(relayStateToDigitalState(defaultState))
-        output = pi4j.dout<DigitalOutputProvider>().create(config)
+        output = context.dout<DigitalOutputProvider>().create(config)
     }
 
     override val state: RelayState

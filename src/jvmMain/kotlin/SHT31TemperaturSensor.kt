@@ -15,12 +15,11 @@ class SHT31TemperaturSensor(bus: Int, device: Int) : BaseTemperatureSensor(), Te
 
     init {
         synchronized(I2CLock.synchOnMe) {
-            val pi4j = Pi4J.newAutoContext()
-            val config = I2C.newConfigBuilder(pi4j)
+            val config = I2C.newConfigBuilder(context)
                 .bus(bus)
                 .device(device)
                 .build()
-            val i2CProvider = pi4j.provider<I2CProvider>("pigpio-i2c")
+            val i2CProvider = context.provider<I2CProvider>("pigpio-i2c")
             _device = i2CProvider.create(config)
             _device.write(0x30.toByte(), 0xA2.toByte()) // not 100% sure !
             sleep(10)

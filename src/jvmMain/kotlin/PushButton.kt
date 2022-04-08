@@ -11,15 +11,12 @@ import kotlinx.coroutines.sync.Mutex
 
 class PushButtonGPIO(val gpioPin: Int): PushButton(), TestableDevice {
     override suspend fun startSensing() {
-        val pi4j = Pi4J.newAutoContext()
-        val buttonConfig = DigitalInput.newConfigBuilder(pi4j)
-            .id("button")
-            .name("Press button")
+        val buttonConfig = DigitalInput.newConfigBuilder(context)
             .address(gpioPin)
             .pull(PullResistance.PULL_DOWN)
             .debounce(3000L)
             .provider("pigpio-digital-input")
-        val button: DigitalInput = pi4j.create(buttonConfig)
+        val button: DigitalInput = context.create(buttonConfig)
         button.addListener({ e ->
             if (e.state() === DigitalState.LOW) {
                 pushed()

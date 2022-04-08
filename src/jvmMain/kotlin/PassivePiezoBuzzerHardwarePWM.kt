@@ -12,9 +12,7 @@ class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer, TestableDevice {
 
     val pwm: Pwm
     init {
-        val pi4j = Pi4J.newAutoContext()
-
-        val config = Pwm.newConfigBuilder(pi4j)
+        val config = Pwm.newConfigBuilder(context)
             .id("my-pwm-pin")
             .name("My Test PWM Pin")
             .address(gpioPin)
@@ -24,7 +22,7 @@ class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer, TestableDevice {
             .initial(50)     // optionally pre-configure an initial duty-cycle value (on startup)
             .build()
 
-        pwm = pi4j.providers().get(PiGpioPwmProvider::class.java).create(config)
+        pwm = context.providers().get(PiGpioPwmProvider::class.java).create(config)
         pwm.off() // TODO put in config?
     }
 

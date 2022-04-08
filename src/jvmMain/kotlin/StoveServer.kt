@@ -19,10 +19,15 @@ import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
-
     val stove = stoveController()
     val display = stove.devices.filterIsInstance<StringDisplay>().firstOrNull()
-    startWebServer(stove)
+    val server = startWebServer(stove)
+
+    Runtime.getRuntime().addShutdownHook(Thread() {
+        server.stop(0, 100)
+        context.shutdown()
+    })
+
     runBlocking {
         launch { stove.startControlling() }
         if(display != null) {
@@ -43,9 +48,9 @@ fun main() {
 }
 
 
-fun startWebServer(stove: StoveController) {
+fun startWebServer(stove: StoveController): ApplicationEngine {
     val port = 8080
-    embeddedServer(Netty, port = port) {
+    return embeddedServer(Netty, port = port) {
         install(CORS) {
             anyHost()
         }

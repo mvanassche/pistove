@@ -12,4 +12,5 @@ fun main() {
         }
         println("Tests completed")
     }
+    context.shutdown()
 }
