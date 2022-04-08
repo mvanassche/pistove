@@ -4,7 +4,12 @@ fun main() {
     runBlocking {
         stoveController().devices.filterIsInstance<TestableDevice>().forEach {
             println("Testing $it")
-            it.test()
+            try {
+                it.test()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
+        println("Tests completed")
     }
 }
