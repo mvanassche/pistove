@@ -6,6 +6,11 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+
+interface TestableDevice {
+    suspend fun test()
+}
+
 class TestTemperatureSensor(val name: String) : BaseTemperatureSensor() {
 
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
@@ -51,4 +56,17 @@ class TestButton(val name: String) : PushButton() {
 
     override suspend fun startSensing() {
     }
+}
+
+object TestBasicUserCommunication : BasicUserCommunication {
+    override suspend fun alert() {
+        println("ALERT")
+    }
+
+    override suspend fun acknowledge() {
+        println("OK")
+    }
+
+    override val devices = emptySet<Device>()
+
 }

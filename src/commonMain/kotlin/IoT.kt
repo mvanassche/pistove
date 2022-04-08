@@ -5,13 +5,16 @@
  */
 interface Controller {
     suspend fun startControlling(): Boolean
+    val devices: Set<Device>
 }
+
+interface Device
 
 /**
  * Sensor: To determine certain physical or chemical characteristics and transform them into an electrical signal to make them digitally process able.
  * Sensors form the backbone of the IoT, helping to bridge the gap between digital and physical.
  */
-interface Sensor {
+interface Sensor : Device {
     suspend fun startSensing()
 }
 
@@ -19,7 +22,7 @@ interface Sensor {
  * Actuator: Actuators transform electrical signals (energy, usually transported by air, electric current, or liquid) into different forms of energy
  * such as motion or pressure. This is the opposite of what sensors do, which is to capture physical characteristics and transform them into electrical signals.
  */
-interface Actuator
+interface Actuator : Device
 
 /*
  * Device: Technical physical component (hardware) with communication capabilities to other IT systems.

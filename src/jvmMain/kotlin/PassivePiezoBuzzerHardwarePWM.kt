@@ -8,7 +8,7 @@ import java.lang.Thread.sleep
 import kotlin.time.Duration
 
 
-class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer {
+class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer, TestableDevice {
 
     val pwm: Pwm
     init {
@@ -37,6 +37,14 @@ class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer {
         pwm.on()
         delay(duration.inWholeMilliseconds)
         pwm.off()
+    }
+
+    override suspend fun test() {
+        delay(500)
+        rrrrrr()
+        delay(1000)
+        bipBip()
+        delay(500)
     }
 }
 

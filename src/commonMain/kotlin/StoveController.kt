@@ -35,6 +35,9 @@ class StoveController(
         return true
     }
 
+    override val devices: Set<Device>
+        get() = setOf(fumes, room, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices
+
     fun stopControlling() {
 
     }
@@ -98,5 +101,8 @@ class CloseWhenCold(override val valve: ElectricValveController, override val fu
         }
         return false
     }
+
+    override val devices: Set<Device>
+        get() = setOf(fumes) + valve.devices
 }
 

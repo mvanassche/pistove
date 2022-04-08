@@ -8,7 +8,7 @@ import kotlin.math.roundToInt
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-class SHT31TemperaturSensor(bus: Int, device: Int) : BaseTemperatureSensor() {
+class SHT31TemperaturSensor(bus: Int, device: Int) : BaseTemperatureSensor(), TestableDevice {
 
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
     val _device: I2C
@@ -47,6 +47,13 @@ class SHT31TemperaturSensor(bus: Int, device: Int) : BaseTemperatureSensor() {
         val cTemp: Double = ((data[0].toUByte().toInt() shl(8)) + (data[1].toUByte().toInt())) * 175.0 / 65535.0 - 45.0
         //val humidity: Double = ((data[3].toUByte().toInt() shl(8)) + (data[4].toUByte().toInt())) * 100.0 / 65535.0
         return (cTemp * 10.0).roundToInt().toDouble() / 10.0 // rounding to 1 decimal?
+    }
+
+    override suspend fun test() {
+        repeat(10) {
+            println("$this: ${sampleValue()}°C")
+            delay(500)
+        }
     }
 }
 

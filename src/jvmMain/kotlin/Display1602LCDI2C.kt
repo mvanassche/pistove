@@ -1,5 +1,6 @@
+import kotlinx.coroutines.delay
 
-class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = false) : StringDisplay, BackLightDisplay {
+class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = false) : StringDisplay, BackLightDisplay, TestableDevice {
     val lcd = I2CLCD("LCD", "LCD", bus, device).apply {
         init()
         clear()
@@ -24,6 +25,15 @@ class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = fa
             field = value
             lcd.backlight(field)
         }
+
+    override suspend fun test() {
+        display("THIS IS A TEST! SEE THIS MESSAGE?")
+        delay(1000)
+        illuminatedBackLight = false
+        delay(500)
+        illuminatedBackLight = true
+        display("it works...")
+    }
 }
 
 fun main(vararg args: String) {

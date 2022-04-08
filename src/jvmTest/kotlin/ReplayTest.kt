@@ -28,7 +28,7 @@ class ReplayTest {
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
+                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 launch { closeButton.push() }
@@ -58,7 +58,7 @@ class ReplayTest {
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
+                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 launch { closeButton.push() }
@@ -96,7 +96,7 @@ class ReplayTest {
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
+                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 launch { closeButton.push() }
@@ -129,7 +129,7 @@ class ReplayTest {
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton)
+                val stove = StoveController(valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 val x = launch { closeButton.push() }
@@ -169,3 +169,8 @@ object XXXSerializer : KSerializer<XXX> {
     }
 
 }
+
+@Serializable
+sealed interface X1
+
+class Y1: X1

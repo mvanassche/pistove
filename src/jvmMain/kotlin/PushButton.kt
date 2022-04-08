@@ -6,9 +6,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 
 
-class PushButtonGPIO(val gpioPin: Int): PushButton() {
+class PushButtonGPIO(val gpioPin: Int): PushButton(), TestableDevice {
     override suspend fun startSensing() {
         val pi4j = Pi4J.newAutoContext()
         val buttonConfig = DigitalInput.newConfigBuilder(pi4j)
@@ -24,6 +25,17 @@ class PushButtonGPIO(val gpioPin: Int): PushButton() {
                 pushed()
             }
         })
+    }
+
+    override suspend fun test() {
+        val m = Mutex(true)
+        println("Click on $this")
+        addOnClickListener {
+            println("OK: $this clicked")
+            m.unlock()
+        }
+        coroutineScope { launch { startSensing() } }
+        m.lock()
     }
 }
 

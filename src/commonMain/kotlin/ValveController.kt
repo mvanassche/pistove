@@ -50,6 +50,9 @@ class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay:
         return true
     }
 
+    override val devices: Set<Device>
+        get() = setOf(powerRelay, openCloseRelay)
+
     suspend fun stateMessage(): String {
         return state.toString()
     }

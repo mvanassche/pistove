@@ -21,6 +21,9 @@ abstract class PushButton : Sensor {
     fun addOnClickListener(listener: () -> Unit) {
         listeners.add(listener)
     }
+    fun removeOnClickListener(listener: () -> Unit) {
+        listeners.remove(listener)
+    }
     protected fun pushed() {
         listeners.forEach { it() }
     }
