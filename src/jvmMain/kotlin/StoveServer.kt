@@ -28,7 +28,8 @@ fun main() {
     //val chimney = TestTemperatureSensor("chimney")
     val chimney = MAX31855TemperaturSensor(0)
     //val room = TMPDS18B20TemperatureSensor()
-    val room = TestTemperatureSensor("room")
+    //val room = TestTemperatureSensor("room")
+    val room = SHT31TemperaturSensor(1, 0x45)
     /*val openButton = TestButton("open button")
     val closeButton = TestButton("close button")
     val autoButton = TestButton("auto button")*/
@@ -140,3 +141,4 @@ fun startWebServer(stove: StoveController) {
         }
     }.start(wait = false)
 }
+

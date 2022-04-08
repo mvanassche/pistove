@@ -1,7 +1,8 @@
 
 class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = false) : StringDisplay, BackLightDisplay {
-    val lcd = I2CLCD("LCD", "LCD", bus, device).also {
-        it.clear()
+    val lcd = I2CLCD("LCD", "LCD", bus, device).apply {
+        init()
+        clear()
     }
 
     override fun display(value: String) {
@@ -25,3 +26,6 @@ class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = fa
         }
 }
 
+fun main(vararg args: String) {
+    Display1602LCDI2C(args[0].toInt(), args[1].toInt(16)).display(args[2])
+}

@@ -9,84 +9,37 @@ public class I2CLCD {
     private I2C _device;
 
     public I2CLCD(String id, String name, Integer bus, Integer device) {
-        var pi4j = Pi4J.newAutoContext();
+        synchronized(I2CLock.synchOnMe) {
+            var pi4j = Pi4J.newAutoContext();
 
-        // create I2C config
-        var config = I2C.newConfigBuilder(pi4j)
-                .id(id)
-                .name(name)
-                .bus(bus)
-                .device(device)
-                .build();
+            // create I2C config
+            var config = I2C.newConfigBuilder(pi4j)
+                    .id(id)
+                    .name(name)
+                    .bus(bus)
+                    .device(device)
+                    .build();
 
-        // get a serial I/O provider from the Pi4J context
-        I2CProvider i2CProvider = pi4j.provider("pigpio-i2c");
+            // get a serial I/O provider from the Pi4J context
+            I2CProvider i2CProvider = pi4j.provider("pigpio-i2c");
 
-        // use try-with-resources to auto-close I2C when complete
-        _device = i2CProvider.create(config);
+            // use try-with-resources to auto-close I2C when complete
+            _device = i2CProvider.create(config);
+        }
     }
 
     // Write a single command
     private void write_cmd(byte cmd) {
-        try {
-            _device.write(cmd);
-            Thread.sleep(0, 100000);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        synchronized (I2CLock.synchOnMe) {
+            try {
+                _device.write(cmd);
+                Thread.sleep(0, 100000);
+            } catch (Exception ex) {
+                System.out.println(ex.getMessage());
+            }
         }
     }
 
-    // Write a command and argument
-    private void write_cmd_arg(byte cmd, byte[] data) {
-        try {
-            _device.register(cmd).write(data);
-            Thread.sleep(0, 100000);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-    }
-
-    // Write a block of data
-    private void write_block_data(byte cmd, byte[] data) {
-        try {
-            _device.register(cmd).write(data);
-            Thread.sleep(0, 100000);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-    }
-
-    // Read a single byte def
-    private byte read() {
-        try {
-            return (byte) _device.read();
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-        return (byte) 0;
-    }
-
-    // Read
-    private byte[] read_data(byte cmd) {
-        byte[] buffer = new byte[cmd];
-        try {
-            _device.read(buffer, 0, cmd);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-        return buffer;
-    }
-
-    // Read a block of data
-    private byte[] read_block_data(byte cmd) {
-        byte[] buffer = new byte[cmd];
-        try {
-            _device.read(buffer, 0, cmd);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-        return buffer;
-    }
 
     private final byte LCD_CLEARDISPLAY = (byte) 0x01;
     private final byte LCD_RETURNHOME = (byte) 0x02;
@@ -153,69 +106,82 @@ public class I2CLCD {
 
     // clocks EN to latch command
     private void lcd_strobe(byte data) {
-        try {
-            _device.write((byte) (data | En | LCD_BACKLIGHT));
-            Thread.sleep(0, 500000);
-            _device.write((byte) ((data & ~En) | LCD_BACKLIGHT));
-            Thread.sleep(0, 100000);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        synchronized (I2CLock.synchOnMe) {
+            try {
+                _device.write((byte) (data | En | LCD_BACKLIGHT));
+                Thread.sleep(0, 500000);
+                _device.write((byte) ((data & ~En) | LCD_BACKLIGHT));
+                Thread.sleep(0, 100000);
+            } catch (Exception ex) {
+                System.out.println(ex.getMessage());
+            }
         }
     }
 
     private void lcd_write_four_bits(byte data) {
-        try {
-            _device.write((byte) (data | LCD_BACKLIGHT));
-            lcd_strobe(data);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        synchronized (I2CLock.synchOnMe) {
+            try {
+                _device.write((byte) (data | LCD_BACKLIGHT));
+                lcd_strobe(data);
+            } catch (Exception ex) {
+                System.out.println(ex.getMessage());
+            }
         }
     }
 
     private void lcd_write(byte cmd, byte mode) {
-        lcd_write_four_bits((byte) (mode | (cmd & 0xF0)));
-        lcd_write_four_bits((byte) (mode | ((cmd << 4) & 0xF0)));
+        synchronized (I2CLock.synchOnMe) {
+            lcd_write_four_bits((byte) (mode | (cmd & 0xF0)));
+            lcd_write_four_bits((byte) (mode | ((cmd << 4) & 0xF0)));
+        }
     }
 
     // write a command to lcd
     private void lcd_write(byte cmd) {
-        lcd_write(cmd, (byte) 0);
+        synchronized (I2CLock.synchOnMe) {
+            lcd_write(cmd, (byte) 0);
+        }
     }
 
     // write a character to lcd
     public void write_char(byte charvalue) {
-        byte mode = 1;
-        lcd_write_four_bits((byte) (mode | (charvalue & 0xF0)));
-        lcd_write_four_bits((byte) (mode | ((charvalue << 4) & 0xF0)));
+        synchronized (I2CLock.synchOnMe) {
+            byte mode = 1;
+            lcd_write_four_bits((byte) (mode | (charvalue & 0xF0)));
+            lcd_write_four_bits((byte) (mode | ((charvalue << 4) & 0xF0)));
+        }
     }
 
     // put string function
     public void display_string(String string, int line) {
-        switch (line) {
-            case 1:
-                lcd_write((byte) 0x80);
-                break;
-            case 2:
-                lcd_write((byte) 0xC0);
-                break;
-            case 3:
-                lcd_write((byte) 0x94);
-                break;
-            case 4:
-                lcd_write((byte) 0xD4);
-                break;
-        }
+        synchronized (I2CLock.synchOnMe) {
+            switch (line) {
+                case 1:
+                    lcd_write((byte) 0x80);
+                    break;
+                case 2:
+                    lcd_write((byte) 0xC0);
+                    break;
+                case 3:
+                    lcd_write((byte) 0x94);
+                    break;
+                case 4:
+                    lcd_write((byte) 0xD4);
+                    break;
+            }
 
-        for (int i = 0; i < string.length(); i++) {
-            lcd_write((byte) string.charAt(i), Rs);
+            for (int i = 0; i < string.length(); i++) {
+                lcd_write((byte) string.charAt(i), Rs);
+            }
         }
     }
 
     // clear lcd and set to home
     public void clear() {
-        lcd_write((byte) LCD_CLEARDISPLAY);
-        lcd_write((byte) LCD_RETURNHOME);
-
+        synchronized (I2CLock.synchOnMe) {
+            lcd_write((byte) LCD_CLEARDISPLAY);
+            lcd_write((byte) LCD_RETURNHOME);
+        }
     }
 
     // define backlight on / off(lcd.backlight(1) off = lcd.backlight(0)
