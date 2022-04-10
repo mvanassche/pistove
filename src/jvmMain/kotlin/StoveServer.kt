@@ -19,7 +19,8 @@ import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
-    val stove = stoveController()
+    val pi = raspberryPiFromEnvironment()
+    val stove = stoveController(pi)
     val display = stove.devices.filterIsInstance<StringDisplay>().firstOrNull()
     val server = startWebServer(stove)
 

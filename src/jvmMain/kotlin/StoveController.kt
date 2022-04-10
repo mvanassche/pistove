@@ -1,9 +1,9 @@
 
 
 
-fun stoveController(): StoveController {
-    val powerRelay = LowActiveGPIOElectricRelay(5)
-    val openCloseRelay = LowActiveGPIOElectricRelay(6)
+fun stoveController(pi: RaspberryPi): StoveController {
+    val powerRelay = LowActiveGPIOElectricRelay(pi, 5)
+    val openCloseRelay = LowActiveGPIOElectricRelay(pi, 6)
     //val openRelay = TestRelay("open")
     //val closeRelay = TestRelay("close")
     val valve = ElectricValveController(powerRelay = powerRelay, openCloseRelay = openCloseRelay)
