@@ -2,6 +2,9 @@ import com.pi4j.Pi4J
 import com.pi4j.io.gpio.digital.DigitalInput
 import com.pi4j.io.gpio.digital.DigitalOutput
 import com.pi4j.io.gpio.digital.DigitalOutputProvider
+import com.pi4j.io.i2c.I2C
+import com.pi4j.io.i2c.I2CProvider
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 
 
@@ -44,6 +47,33 @@ class Pi4JRasperryPi : RaspberryPi {
                 TODO("Not yet implemented") // TODO TODO !!!
             }
 
+        }
+    }
+
+    // https://github.com/Pi4J/pi4j-v2/discussions/158 this is probably overkill, but I did reach some concurrency issues in the past, so better be safe than sorry
+    val i2cBusesLocks = Array(10) { it.toString() } // TODO, there is smarter to do here (max 10 I2C buses?)
+
+    override fun i2c(bus: Int, device: Int): I2CBusDevice {
+        val config = I2C.newConfigBuilder(context)
+            .bus(bus)
+            .device(device)
+            .build()
+        val i2CProvider = context.provider<I2CProvider>("pigpio-i2c")
+        val i2c: I2C = i2CProvider.create(config)
+        return object : I2CBusDevice {
+            override fun <T> transact(process: GPIOProtocol.() -> T): T {
+                synchronized(i2cBusesLocks[bus]) {
+                    return process()
+                }
+            }
+
+            override fun write(bytes: ByteArray) {
+                i2c.write(bytes)
+            }
+
+            override fun read(bytes: ByteArray) {
+                i2c.read(bytes)
+            }
         }
     }
 }

@@ -7,6 +7,8 @@ interface RaspberryPi {
 
     fun gpioDigitalInput(bcm: Int, pullResistance: PullResistance?, debounce: Duration?): GPIODigitalInput
 
+    fun i2c(bus: Int, device: Int): I2CBusDevice
+
 }
 
 interface GPIOProtocol {
@@ -29,7 +31,11 @@ interface GPIODigitalInput : GPIOProtocol {
     fun removeOnChangeListener(listener: (DigitalState?) -> Unit)
 }
 
-
+interface I2CBusDevice : GPIOProtocol {
+    fun write(bytes: ByteArray)
+    fun read(bytes: ByteArray)
+    // TODO registers
+}
 
 
 val pi by lazy { raspberryPiFromEnvironment() }
@@ -51,4 +57,10 @@ object DummyPi : RaspberryPi {
         }
     }
 
+    override fun i2c(bus: Int, device: Int): I2CBusDevice {
+        return object : I2CBusDevice {
+            override fun write(bytes: ByteArray) {}
+            override fun read(bytes: ByteArray) {}
+        }
+    }
 }
