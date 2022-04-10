@@ -6,6 +6,8 @@ import com.pi4j.io.i2c.I2C
 import com.pi4j.io.i2c.I2CProvider
 import com.pi4j.io.pwm.Pwm
 import com.pi4j.io.pwm.PwmType
+import com.pi4j.io.spi.Spi
+import com.pi4j.io.spi.SpiProvider
 import com.pi4j.plugin.pigpio.provider.pwm.PiGpioPwmProvider
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
@@ -108,6 +110,21 @@ class Pi4JRasperryPi : RaspberryPi {
             }
             override fun off() {
                 pwm.off()
+            }
+        }
+    }
+
+    override fun spi(channel: Int): GPIOSPI {
+        val config = Spi.newConfigBuilder(context)
+            .address(channel)
+            .baud(500000) //Spi.DEFAULT_BAUD) // TODO is that a parameter?
+            .build()
+        val spiProvider = context.provider<SpiProvider>("pigpio-spi")
+        val spi = spiProvider.create(config)
+        spi.open()
+        return object : GPIOSPI {
+            override fun transfer(bytes: ByteArray) {
+                spi.transfer(bytes)
             }
         }
     }

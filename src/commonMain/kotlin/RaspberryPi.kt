@@ -10,6 +10,8 @@ interface RaspberryPi {
     fun i2c(bus: Int, device: Int): I2CBusDevice
 
     fun pwm(bcm: Int, hardware: Boolean): GPIOPWM
+
+    fun spi(channel: Int): GPIOSPI
 }
 
 interface GPIOProtocol
@@ -40,6 +42,10 @@ interface GPIOPWM : GPIOProtocol {
     var dutyCycle: Double // 0% - 100%
     fun on()
     fun off()
+}
+
+interface GPIOSPI : GPIOProtocol {
+    fun transfer(bytes: ByteArray)
 }
 
 val pi by lazy { raspberryPiFromEnvironment() }
@@ -76,6 +82,12 @@ object DummyPi : RaspberryPi {
             override var dutyCycle: Double = 0.0
             override fun on() {}
             override fun off() {}
+        }
+    }
+
+    override fun spi(channel: Int): GPIOSPI {
+        return object : GPIOSPI {
+            override fun transfer(bytes: ByteArray) {}
         }
     }
 }

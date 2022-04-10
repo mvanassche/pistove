@@ -3,9 +3,9 @@ import com.pi4j.io.spi.Spi
 import com.pi4j.io.spi.SpiProvider
 import java.util.*
 
-class MAX31855(private val channel: Int) {
+class MAX31855(val channel: Int) {
     private val BUFFER = ByteArray(4)
-    var spi: Spi
+    var spi: GPIOSPI = pi.spi(channel)
 
     /**
      * Read raw temperature data.
@@ -18,7 +18,7 @@ class MAX31855(private val channel: Int) {
 
         // http://stackoverflow.com/a/9128762/196486
         Arrays.fill(BUFFER, 0.toByte()) // clear buffer
-        spi.transfer(BUFFER, 4) //wiringPiSPIDataRW(channel, BUFFER, 4);
+        spi.transfer(BUFFER)
         val data: Int = BUFFER[0].toInt() and 0xFF shl 24 or
                 (BUFFER[1].toInt() and 0xFF shl 16) or
                 (BUFFER[2].toInt() and 0xFF shl 8) or
@@ -91,30 +91,5 @@ class MAX31855(private val channel: Int) {
          * 13 of the least most significant bits (big endian) set to 1.
          */
         const val LSB_13 = 0x1FFF
-    }
-
-    init {
-
-        // Initialize Pi4J with an auto context
-        // An auto context includes AUTO-DETECT BINDINGS enabled
-        // which will load all detected Pi4J extension libraries
-        // (Platforms and Providers) in the class path
-        val pi4j = Pi4J.newAutoContext()
-
-        // create SPI config
-        val config = Spi.newConfigBuilder(pi4j)
-            .id("my-spi-device")
-            .name("My SPI Device")
-            .address(channel)
-            .baud(500000) //Spi.DEFAULT_BAUD)
-            .build()
-
-        // get a SPI I/O provider from the Pi4J context
-        val spiProvider = pi4j.provider<SpiProvider>("pigpio-spi")
-
-        // use try-with-resources to auto-close SPI when complete
-        spi = spiProvider.create(config)
-        // open SPI communications
-        spi.open()
     }
 }
