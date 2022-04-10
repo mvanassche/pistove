@@ -1,6 +1,8 @@
+import kotlinx.serialization.Required
+import kotlinx.serialization.Serializable
 
-
-class LowActiveGPIOElectricRelay(val pi: RaspberryPi, gpioPin: Int, defaultState: RelayState = RelayState.inactive) : ElectricRelay {
+@Serializable
+class LowActiveGPIOElectricRelay(val gpioPin: Int, /*@Required*/ val defaultState: RelayState = RelayState.inactive) : ElectricRelay {
 
     val output by lazy {
         pi.gpioDigitalOutput(gpioPin, relayStateToDigitalState(defaultState))
@@ -34,10 +36,9 @@ class LowActiveGPIOElectricRelay(val pi: RaspberryPi, gpioPin: Int, defaultState
 
 
 fun main(vararg args: String) {
-    val pi = raspberryPiFromEnvironment()
     if (args[1] == "1") {
-        LowActiveGPIOElectricRelay(pi, args[0].toInt()).activate()
+        LowActiveGPIOElectricRelay(args[0].toInt()).activate()
     } else {
-        LowActiveGPIOElectricRelay(pi, args[0].toInt()).deactivate()
+        LowActiveGPIOElectricRelay(args[0].toInt()).deactivate()
     }
 }

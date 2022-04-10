@@ -5,7 +5,7 @@ import com.pi4j.io.gpio.digital.DigitalOutputProvider
 
 //https://pi4j.com/documentation/create-context/
 
-val context = Pi4J.newAutoContext()
+val context by lazy { Pi4J.newAutoContext() }
 
 class Pi4JRasperryPi : RaspberryPi {
     override fun gpioDigitalOutput(bcm: Int, defaultState: DigitalState): GPIODigitalOutput {
@@ -20,10 +20,6 @@ class Pi4JRasperryPi : RaspberryPi {
                 set(value) {
                     pdo.state(value.toPi4J())
                 }
-
-            override fun <T> transact(process: GPIOProtocol.() -> T): T {
-                return process(this)
-            }
         }
     }
 }
@@ -45,5 +41,9 @@ fun DigitalState?.toPi4J(): com.pi4j.io.gpio.digital.DigitalState {
 }
 
 actual fun raspberryPiFromEnvironment(): RaspberryPi {
-    return Pi4JRasperryPi()
+    if(System.getProperty("os.arch") == "arm") { // TODO be more precise to make sure we are on pi.
+        return Pi4JRasperryPi()
+    } else {
+        return DummyPi
+    }
 }

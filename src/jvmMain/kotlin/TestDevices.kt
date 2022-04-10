@@ -2,7 +2,7 @@ import kotlinx.coroutines.runBlocking
 
 fun main() {
     runBlocking {
-        stoveController(raspberryPiFromEnvironment()).devices.filterIsInstance<TestableDevice>().forEach {
+        stoveController().devices.filterIsInstance<TestableDevice>().forEach {
             println("Testing $it")
             try {
                 it.test()

@@ -1,4 +1,4 @@
-
+import kotlinx.serialization.Serializable
 
 interface RaspberryPi {
 
@@ -7,7 +7,9 @@ interface RaspberryPi {
 }
 
 interface GPIOProtocol {
-    fun <T> transact(process: GPIOProtocol.() -> T): T
+    fun <T> transact(process: GPIOProtocol.() -> T): T {
+        return process()
+    }
 }
 
 enum class DigitalState { low, high }
@@ -16,4 +18,15 @@ interface GPIODigitalOutput : GPIOProtocol {
 }
 
 
+val pi by lazy { raspberryPiFromEnvironment() }
 expect fun raspberryPiFromEnvironment(): RaspberryPi
+
+@Serializable
+object DummyPi : RaspberryPi {
+    override fun gpioDigitalOutput(bcm: Int, defaultState: DigitalState): GPIODigitalOutput {
+        return object : GPIODigitalOutput {
+            override var state: DigitalState? = null
+        }
+    }
+
+}
