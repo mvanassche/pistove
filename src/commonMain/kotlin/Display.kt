@@ -2,9 +2,9 @@ interface Display : Actuator {
 }
 
 interface StringDisplay : Display {
-    fun display(value: String)
+    suspend fun display(value: String)
 }
 
 interface BackLightDisplay : Display {
-    var illuminatedBackLight: Boolean
+    suspend fun backLight(illuminated: Boolean)
 }

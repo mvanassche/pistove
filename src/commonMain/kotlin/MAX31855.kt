@@ -1,10 +1,5 @@
-import com.pi4j.Pi4J
-import com.pi4j.io.spi.Spi
-import com.pi4j.io.spi.SpiProvider
-import java.util.*
 
 class MAX31855(val channel: Int) {
-    private val BUFFER = ByteArray(4)
     var spi: GPIOSPI = pi.spi(channel)
 
     /**
@@ -16,8 +11,7 @@ class MAX31855(val channel: Int) {
     fun readRaw(raw: IntArray): Int {
         require(raw.size == 2) { "Temperature array must have a length of 2" }
 
-        // http://stackoverflow.com/a/9128762/196486
-        Arrays.fill(BUFFER, 0.toByte()) // clear buffer
+        val BUFFER = ByteArray(4) // no need: it is initialized to 0 { 0.toByte() }
         spi.transfer(BUFFER)
         val data: Int = BUFFER[0].toInt() and 0xFF shl 24 or
                 (BUFFER[1].toInt() and 0xFF shl 16) or

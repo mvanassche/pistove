@@ -31,7 +31,11 @@ interface GPIODigitalInput : GPIOProtocol {
 }
 
 interface I2CBusDevice : GPIOProtocol {
-    fun <T> transact(process: I2CBusDevice.() -> T): T
+    suspend fun <T> transact(process: suspend I2CBusDeviceTransaction.() -> T): T
+    suspend fun write(bytes: ByteArray) { transact { write(bytes) } }
+    suspend fun read(bytes: ByteArray) { transact { read(bytes) } }
+}
+interface I2CBusDeviceTransaction : GPIOProtocol {
     fun write(bytes: ByteArray)
     fun read(bytes: ByteArray)
     // TODO registers
@@ -68,10 +72,11 @@ object DummyPi : RaspberryPi {
 
     override fun i2c(bus: Int, device: Int): I2CBusDevice {
         return object : I2CBusDevice {
-            override fun write(bytes: ByteArray) {}
-            override fun read(bytes: ByteArray) {}
-            override fun <T> transact(process: I2CBusDevice.() -> T): T {
-                return process()
+            override suspend fun <T> transact(process: suspend I2CBusDeviceTransaction.() -> T): T {
+                return process(object : I2CBusDeviceTransaction {
+                    override fun write(bytes: ByteArray) {}
+                    override fun read(bytes: ByteArray) {}
+                })
             }
         }
     }

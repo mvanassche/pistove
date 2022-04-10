@@ -1,3 +1,4 @@
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -30,7 +31,7 @@ class StoveController(
             openButton.addOnClickListener { this.launch { open() } }
             closeButton.addOnClickListener { this.launch { close() } }
             autoButton.addOnClickListener { this.launch { auto() } }
-            while(true) delay(100000) // TODO: find something better? wait until stopControlling is called?
+            awaitCancellation()
         }
         return true
     }

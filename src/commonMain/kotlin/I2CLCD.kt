@@ -1,3 +1,7 @@
+import kotlinx.coroutines.delay
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
+
 // adapted from https://github.com/Poduzov/PI4J-I2C-LCD/blob/master/I2CLCD.java
 class I2CLCD(bus: Int, device: Int) {
     private var _device: I2CBusDevice
@@ -5,10 +9,10 @@ class I2CLCD(bus: Int, device: Int) {
         _device = pi.i2c(bus, device)
     }
     // Write a single command
-    private fun write_cmd(cmd: Byte) {
+    suspend private fun write_cmd(cmd: Byte) {
         try {
             _device.write(byteArrayOf(cmd))
-            Thread.sleep(0, 100000)
+            delay(100.toDuration(DurationUnit.MICROSECONDS))
         } catch (ex: Exception) {
             println(ex.message)
         }
@@ -59,7 +63,7 @@ class I2CLCD(bus: Int, device: Int) {
     private val Rs = 1 // Register select bit
 
     //initializes objects and lcd
-    fun init() {
+    suspend fun init() {
         try {
             lcd_write(0x03.toByte())
             lcd_write(0x03.toByte())
@@ -69,81 +73,71 @@ class I2CLCD(bus: Int, device: Int) {
             lcd_write((LCD_DISPLAYCONTROL or LCD_DISPLAYON).toByte())
             lcd_write(LCD_CLEARDISPLAY.toByte())
             lcd_write((LCD_ENTRYMODESET or LCD_ENTRYLEFT).toByte())
-            Thread.sleep(0, 200000)
+            delay(200.toDuration(DurationUnit.MICROSECONDS))
         } catch (ex: Exception) {
             println(ex.message)
         }
     }
 
     // clocks EN to latch command
-    private fun lcd_strobe(data: Byte) {
+    private suspend fun lcd_strobe(data: Byte) {
         try {
             _device.write(byteArrayOf((data.toInt() or En or LCD_BACKLIGHT).toByte()))
-            Thread.sleep(0, 500000)
+            delay(500.toDuration(DurationUnit.MICROSECONDS))
             _device.write(byteArrayOf((data.toInt() and En.inv() or LCD_BACKLIGHT).toByte()))
-            Thread.sleep(0, 100000)
+            delay(100.toDuration(DurationUnit.MICROSECONDS))
         } catch (ex: Exception) {
             println(ex.message)
         }
     }
 
-    private fun lcd_write_four_bits(data: Byte) {
-        synchronized(I2CLock.synchOnMe) {
-            try {
-                _device.write(byteArrayOf((data.toInt() or LCD_BACKLIGHT).toByte()))
-                lcd_strobe(data)
-            } catch (ex: Exception) {
-                println(ex.message)
-            }
+    private suspend fun lcd_write_four_bits(data: Byte) {
+        try {
+            _device.write(byteArrayOf((data.toInt() or LCD_BACKLIGHT).toByte()))
+            lcd_strobe(data)
+        } catch (ex: Exception) {
+            println(ex.message)
         }
     }
 
-    private fun lcd_write(cmd: Byte, mode: Byte) {
-        synchronized(I2CLock.synchOnMe) {
-            lcd_write_four_bits((mode.toInt() or (cmd.toInt() and 0xF0)).toByte())
-            lcd_write_four_bits((mode.toInt() or (cmd.toInt() shl 4 and 0xF0)).toByte())
-        }
+    private suspend fun lcd_write(cmd: Byte, mode: Byte) {
+        lcd_write_four_bits((mode.toInt() or (cmd.toInt() and 0xF0)).toByte())
+        lcd_write_four_bits((mode.toInt() or (cmd.toInt() shl 4 and 0xF0)).toByte())
     }
 
     // write a command to lcd
-    private fun lcd_write(cmd: Byte) {
-        synchronized(I2CLock.synchOnMe) { lcd_write(cmd, 0.toByte()) }
+    private suspend fun lcd_write(cmd: Byte) {
+        lcd_write(cmd, 0.toByte())
     }
 
     // write a character to lcd
-    fun write_char(charvalue: Byte) {
-        synchronized(I2CLock.synchOnMe) {
-            val mode = 1
-            lcd_write_four_bits((mode or (charvalue.toInt() and 0xF0)).toByte())
-            lcd_write_four_bits((mode or (charvalue.toInt() shl 4 and 0xF0)).toByte())
-        }
+    suspend fun write_char(charvalue: Byte) {
+        val mode = 1
+        lcd_write_four_bits((mode or (charvalue.toInt() and 0xF0)).toByte())
+        lcd_write_four_bits((mode or (charvalue.toInt() shl 4 and 0xF0)).toByte())
     }
 
     // put string function
-    fun display_string(string: String, line: Int) {
-        synchronized(I2CLock.synchOnMe) {
-            when (line) {
-                1 -> lcd_write(0x80.toByte())
-                2 -> lcd_write(0xC0.toByte())
-                3 -> lcd_write(0x94.toByte())
-                4 -> lcd_write(0xD4.toByte())
-            }
-            for (i in 0 until string.length) {
-                lcd_write(string[i].code.toByte(), Rs.toByte())
-            }
+    suspend fun display_string(string: String, line: Int) {
+        when (line) {
+            1 -> lcd_write(0x80.toByte())
+            2 -> lcd_write(0xC0.toByte())
+            3 -> lcd_write(0x94.toByte())
+            4 -> lcd_write(0xD4.toByte())
+        }
+        for (i in 0 until string.length) {
+            lcd_write(string[i].code.toByte(), Rs.toByte())
         }
     }
 
     // clear lcd and set to home
-    fun clear() {
-        synchronized(I2CLock.synchOnMe) {
-            lcd_write(LCD_CLEARDISPLAY.toByte())
-            lcd_write(LCD_RETURNHOME.toByte())
-        }
+    suspend fun clear() {
+        lcd_write(LCD_CLEARDISPLAY.toByte())
+        lcd_write(LCD_RETURNHOME.toByte())
     }
 
     // define backlight on / off(lcd.backlight(1) off = lcd.backlight(0)
-    fun backlight(state: Boolean) {
+    suspend fun backlight(state: Boolean) {
         //for state, 1 = on, 0 = off
         if (state) {
             write_cmd(LCD_BACKLIGHT.toByte())
@@ -153,7 +147,7 @@ class I2CLCD(bus: Int, device: Int) {
     }
 
     // add custom characters(0 - 7)
-    private fun load_custom_chars(fontdata: Array<ByteArray>) {
+    private suspend fun load_custom_chars(fontdata: Array<ByteArray>) {
         lcd_write(0x40.toByte())
         for (i in fontdata.indices) {
             for (j in 0 until fontdata[i].size) {
@@ -163,7 +157,7 @@ class I2CLCD(bus: Int, device: Int) {
     }
 
     // define precise positioning (addition from the forum)
-    fun display_string_pos(string: String, line: Int, pos: Int) {
+    suspend fun display_string_pos(string: String, line: Int, pos: Int) {
         var pos_new: Byte = 0
         if (line == 1) {
             pos_new = pos.toByte()

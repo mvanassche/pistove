@@ -9,6 +9,7 @@ import com.pi4j.io.pwm.PwmType
 import com.pi4j.io.spi.Spi
 import com.pi4j.io.spi.SpiProvider
 import com.pi4j.plugin.pigpio.provider.pwm.PiGpioPwmProvider
+import kotlinx.coroutines.sync.Mutex
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 
@@ -56,7 +57,7 @@ class Pi4JRasperryPi : RaspberryPi {
     }
 
     // https://github.com/Pi4J/pi4j-v2/discussions/158 this is probably overkill, but I did reach some concurrency issues in the past, so better be safe than sorry
-    val i2cBusesLocks = Array(10) { it.toString() } // TODO, there is smarter to do here (max 10 I2C buses?)
+    val i2cBusesLocks = Array(10) { Mutex() } // TODO, there is smarter to do here (max 10 I2C buses?)
 
     override fun i2c(bus: Int, device: Int): I2CBusDevice {
         val config = I2C.newConfigBuilder(context)
@@ -66,22 +67,17 @@ class Pi4JRasperryPi : RaspberryPi {
         val i2CProvider = context.provider<I2CProvider>("pigpio-i2c")
         val i2c: I2C = i2CProvider.create(config)
         return object : I2CBusDevice {
-            override fun <T> transact(process: I2CBusDevice.() -> T): T {
-                synchronized(i2cBusesLocks[bus]) {
-                    return process()
-                }
-            }
-
-            override fun write(bytes: ByteArray) {
-                synchronized(i2cBusesLocks[bus]) {
-                    i2c.write(bytes)
-                }
-            }
-
-            override fun read(bytes: ByteArray) {
-                synchronized(i2cBusesLocks[bus]) {
-                    i2c.read(bytes)
-                }
+            override suspend fun <T> transact(process: suspend I2CBusDeviceTransaction.() -> T): T {
+                i2cBusesLocks[bus].lock()
+                return process(object: I2CBusDeviceTransaction {
+                    override fun write(bytes: ByteArray) {
+                        i2c.write(bytes)
+                    }
+                    override fun read(bytes: ByteArray) {
+                        i2c.read(bytes)
+                    }
+                })
+                .also { i2cBusesLocks[bus].unlock() }
             }
         }
     }
