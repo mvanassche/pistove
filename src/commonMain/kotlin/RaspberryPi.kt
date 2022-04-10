@@ -9,6 +9,7 @@ interface RaspberryPi {
 
     fun i2c(bus: Int, device: Int): I2CBusDevice
 
+    fun pwm(bcm: Int, hardware: Boolean): GPIOPWM
 }
 
 interface GPIOProtocol
@@ -34,11 +35,16 @@ interface I2CBusDevice : GPIOProtocol {
     // TODO registers
 }
 
+interface GPIOPWM : GPIOProtocol {
+    var frequency: Int // Hertz
+    var dutyCycle: Double // 0% - 100%
+    fun on()
+    fun off()
+}
 
 val pi by lazy { raspberryPiFromEnvironment() }
 expect fun raspberryPiFromEnvironment(): RaspberryPi
 
-@Serializable
 object DummyPi : RaspberryPi {
     override fun gpioDigitalOutput(bcm: Int, defaultState: DigitalState): GPIODigitalOutput {
         return object : GPIODigitalOutput {
@@ -61,6 +67,15 @@ object DummyPi : RaspberryPi {
             override fun <T> transact(process: I2CBusDevice.() -> T): T {
                 return process()
             }
+        }
+    }
+
+    override fun pwm(bcm: Int, hardware: Boolean): GPIOPWM {
+        return object : GPIOPWM {
+            override var frequency: Int = 0
+            override var dutyCycle: Double = 0.0
+            override fun on() {}
+            override fun off() {}
         }
     }
 }

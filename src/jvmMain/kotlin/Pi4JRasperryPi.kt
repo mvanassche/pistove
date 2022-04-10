@@ -4,6 +4,9 @@ import com.pi4j.io.gpio.digital.DigitalOutput
 import com.pi4j.io.gpio.digital.DigitalOutputProvider
 import com.pi4j.io.i2c.I2C
 import com.pi4j.io.i2c.I2CProvider
+import com.pi4j.io.pwm.Pwm
+import com.pi4j.io.pwm.PwmType
+import com.pi4j.plugin.pigpio.provider.pwm.PiGpioPwmProvider
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 
@@ -77,6 +80,34 @@ class Pi4JRasperryPi : RaspberryPi {
                 synchronized(i2cBusesLocks[bus]) {
                     i2c.read(bytes)
                 }
+            }
+        }
+    }
+
+    override fun pwm(bcm: Int, hardware: Boolean): GPIOPWM {
+        val config = Pwm.newConfigBuilder(context)
+            .address(bcm)
+            .pwmType(if(hardware) PwmType.HARDWARE else PwmType.SOFTWARE)
+            .frequency(1) // Why not 1?
+            .shutdown(0)
+            .initial(0)
+            .build()
+
+        val pwm = context.providers().get(PiGpioPwmProvider::class.java).create(config)
+        pwm.off() // TODO can't you put that in config?
+        return object : GPIOPWM {
+            override var frequency: Int
+                get() = pwm.frequency
+                set(value) { pwm.frequency = value }
+            override var dutyCycle: Double
+                get() = pwm.dutyCycle.toDouble()
+                set(value) { pwm.dutyCycle(value.toFloat()) }
+
+            override fun on() {
+                pwm.on()
+            }
+            override fun off() {
+                pwm.off()
             }
         }
     }

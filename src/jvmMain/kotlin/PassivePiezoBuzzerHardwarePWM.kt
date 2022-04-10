@@ -1,29 +1,14 @@
-import com.pi4j.Pi4J
-import com.pi4j.io.pwm.Pwm
-import com.pi4j.io.pwm.PwmType
-import com.pi4j.plugin.pigpio.provider.pwm.PiGpioPwmProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import java.lang.Thread.sleep
 import kotlin.time.Duration
 
 
-class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer, TestableDevice {
+class PassivePiezoBuzzerHardwarePWM(val bcm: Int, val hardware: Boolean = (bcm in listOf(12, 13, 18, 19))) : Buzzer, TestableDevice {
 
-    val pwm: Pwm
+    val pwm: GPIOPWM
     init {
-        val config = Pwm.newConfigBuilder(context)
-            .id("my-pwm-pin")
-            .name("My Test PWM Pin")
-            .address(gpioPin)
-            .pwmType(PwmType.HARDWARE) // USE HARDWARE PWM
-            //.frequency(4000) // optionally pre-configure the desired frequency to 1KHz
-            .shutdown(0) // optionally pre-configure a shutdown duty-cycle value (on terminate)
-            .initial(50)     // optionally pre-configure an initial duty-cycle value (on startup)
-            .build()
-
-        pwm = context.providers().get(PiGpioPwmProvider::class.java).create(config)
-        pwm.off() // TODO put in config?
+        pwm = pi.pwm(bcm, hardware)
+        pwm.dutyCycle = 50.0
     }
 
     override suspend fun beep(duration: Duration) {
@@ -31,7 +16,7 @@ class PassivePiezoBuzzerHardwarePWM(val gpioPin: Int) : Buzzer, TestableDevice {
     }
 
     override suspend fun beep(frequency: Int, duration: Duration) {
-        pwm.frequency(frequency)
+        pwm.frequency = frequency
         pwm.on()
         delay(duration.inWholeMilliseconds)
         pwm.off()
