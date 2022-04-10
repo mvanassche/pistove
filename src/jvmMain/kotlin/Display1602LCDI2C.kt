@@ -1,7 +1,7 @@
 import kotlinx.coroutines.delay
 
 class Display1602LCDI2C(val bus: Int, val device: Int, illuminated: Boolean = false) : StringDisplay, BackLightDisplay, TestableDevice {
-    val lcd = I2CLCD("LCD", "LCD", bus, device).apply {
+    val lcd = I2CLCD(bus, device).apply {
         init()
         clear()
     }

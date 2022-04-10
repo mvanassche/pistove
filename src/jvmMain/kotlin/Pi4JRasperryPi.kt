@@ -61,18 +61,22 @@ class Pi4JRasperryPi : RaspberryPi {
         val i2CProvider = context.provider<I2CProvider>("pigpio-i2c")
         val i2c: I2C = i2CProvider.create(config)
         return object : I2CBusDevice {
-            override fun <T> transact(process: GPIOProtocol.() -> T): T {
+            override fun <T> transact(process: I2CBusDevice.() -> T): T {
                 synchronized(i2cBusesLocks[bus]) {
                     return process()
                 }
             }
 
             override fun write(bytes: ByteArray) {
-                i2c.write(bytes)
+                synchronized(i2cBusesLocks[bus]) {
+                    i2c.write(bytes)
+                }
             }
 
             override fun read(bytes: ByteArray) {
-                i2c.read(bytes)
+                synchronized(i2cBusesLocks[bus]) {
+                    i2c.read(bytes)
+                }
             }
         }
     }

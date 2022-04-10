@@ -11,11 +11,7 @@ interface RaspberryPi {
 
 }
 
-interface GPIOProtocol {
-    fun <T> transact(process: GPIOProtocol.() -> T): T {
-        return process()
-    }
-}
+interface GPIOProtocol
 
 enum class DigitalState { low, high }
 
@@ -32,6 +28,7 @@ interface GPIODigitalInput : GPIOProtocol {
 }
 
 interface I2CBusDevice : GPIOProtocol {
+    fun <T> transact(process: I2CBusDevice.() -> T): T
     fun write(bytes: ByteArray)
     fun read(bytes: ByteArray)
     // TODO registers
@@ -61,6 +58,9 @@ object DummyPi : RaspberryPi {
         return object : I2CBusDevice {
             override fun write(bytes: ByteArray) {}
             override fun read(bytes: ByteArray) {}
+            override fun <T> transact(process: I2CBusDevice.() -> T): T {
+                return process()
+            }
         }
     }
 }

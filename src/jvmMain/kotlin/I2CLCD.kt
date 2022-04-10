@@ -1,21 +1,16 @@
-import com.pi4j.io.i2c.I2C
-import com.pi4j.io.i2c.I2CProvider
-import kotlin.experimental.and
-import kotlin.experimental.or
-
 // adapted from https://github.com/Poduzov/PI4J-I2C-LCD/blob/master/I2CLCD.java
-class I2CLCD(id: String?, name: String?, bus: Int?, device: Int?) {
-    private var _device: I2C? = null
-
+class I2CLCD(bus: Int, device: Int) {
+    private var _device: I2CBusDevice
+    init {
+        _device = pi.i2c(bus, device)
+    }
     // Write a single command
     private fun write_cmd(cmd: Byte) {
-        synchronized(I2CLock.synchOnMe) {
-            try {
-                _device!!.write(cmd)
-                Thread.sleep(0, 100000)
-            } catch (ex: Exception) {
-                println(ex.message)
-            }
+        try {
+            _device.write(byteArrayOf(cmd))
+            Thread.sleep(0, 100000)
+        } catch (ex: Exception) {
+            println(ex.message)
         }
     }
 
@@ -82,22 +77,20 @@ class I2CLCD(id: String?, name: String?, bus: Int?, device: Int?) {
 
     // clocks EN to latch command
     private fun lcd_strobe(data: Byte) {
-        synchronized(I2CLock.synchOnMe) {
-            try {
-                _device!!.write((data.toInt() or En or LCD_BACKLIGHT).toByte())
-                Thread.sleep(0, 500000)
-                _device!!.write((data.toInt() and En.inv() or LCD_BACKLIGHT).toByte())
-                Thread.sleep(0, 100000)
-            } catch (ex: Exception) {
-                println(ex.message)
-            }
+        try {
+            _device.write(byteArrayOf((data.toInt() or En or LCD_BACKLIGHT).toByte()))
+            Thread.sleep(0, 500000)
+            _device.write(byteArrayOf((data.toInt() and En.inv() or LCD_BACKLIGHT).toByte()))
+            Thread.sleep(0, 100000)
+        } catch (ex: Exception) {
+            println(ex.message)
         }
     }
 
     private fun lcd_write_four_bits(data: Byte) {
         synchronized(I2CLock.synchOnMe) {
             try {
-                _device!!.write((data.toInt() or LCD_BACKLIGHT).toByte())
+                _device.write(byteArrayOf((data.toInt() or LCD_BACKLIGHT).toByte()))
                 lcd_strobe(data)
             } catch (ex: Exception) {
                 println(ex.message)
@@ -187,23 +180,4 @@ class I2CLCD(id: String?, name: String?, bus: Int?, device: Int?) {
         }
     }
 
-    init {
-        synchronized(I2CLock.synchOnMe) {
-            val pi4j = context
-
-            // create I2C config
-            val config = I2C.newConfigBuilder(pi4j)
-                .id(id)
-                .name(name)
-                .bus(bus)
-                .device(device)
-                .build()
-
-            // get a serial I/O provider from the Pi4J context
-            val i2CProvider = pi4j.provider<I2CProvider>("pigpio-i2c")
-
-            // use try-with-resources to auto-close I2C when complete
-            _device = i2CProvider.create(config)
-        }
-    }
 }
