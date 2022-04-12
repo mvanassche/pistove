@@ -1,15 +1,6 @@
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.Json
-import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -142,35 +133,4 @@ class ReplayTest {
             }
         } catch (e: InterruptedException) {}
     }
-
-    @Test
-    fun testXXX() {
-        println(Json.encodeToString(XXXSerializer, object : XXX { override val x = 123.0 } ))
-    }
-
-
 }
-
-@Serializable(with = XXXSerializer::class)
-interface XXX {
-    val x: Double
-}
-
-object XXXSerializer : KSerializer<XXX> {
-    override fun deserialize(decoder: Decoder): XXX {
-        return object : XXX { override val x = decoder.decodeDouble() }
-    }
-
-    override val descriptor: SerialDescriptor
-        get() = PrimitiveSerialDescriptor("XXX", PrimitiveKind.DOUBLE)
-
-    override fun serialize(encoder: Encoder, value: XXX) {
-        encoder.encodeDouble(value.x)
-    }
-
-}
-
-@Serializable
-sealed interface X1
-
-class Y1: X1

@@ -5,6 +5,21 @@ import kotlinx.coroutines.launch
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+
+fun stoveController(): StoveController {
+    val powerRelay = LowActiveGPIOElectricRelay(5)
+    val openCloseRelay = LowActiveGPIOElectricRelay( 6)
+    val valve = ElectricValveController(powerRelay = powerRelay, openCloseRelay = openCloseRelay)
+    val chimney = MAX31855TemperaturSensor(0)
+    val room = SHT31TemperaturSensor(1, 0x45)
+    val buzzer = PassivePiezoBuzzerHardwarePWM(12)
+    val openButton = PushButtonGPIO(13)
+    val closeButton = PushButtonGPIO(26)
+    val autoButton = PushButtonGPIO(19)
+    val display = Display1602LCDI2C(1, 0x27)
+    return StoveController(valve, chimney, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
+}
+
 class StoveController(
     val valve: ElectricValveController,
     val fumes: TemperatureSensor,
@@ -106,4 +121,5 @@ class CloseWhenCold(override val valve: ElectricValveController, override val fu
     override val devices: Set<Device>
         get() = setOf(fumes) + valve.devices
 }
+
 

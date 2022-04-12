@@ -1,5 +1,4 @@
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration
 
 
@@ -31,11 +30,11 @@ class PassivePiezoBuzzerHardwarePWM(val bcm: Int, val hardware: Boolean = (bcm i
     }
 }
 
-fun main(vararg args: String) {
+/*fun main(vararg args: String) {
     runBlocking {
         PassivePiezoBuzzerHardwarePWM(args[0].toInt()).apply {
             bipBip()
             rrrrrr()
         }
     }
-}
+}*/

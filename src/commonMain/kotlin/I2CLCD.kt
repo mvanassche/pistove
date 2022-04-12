@@ -81,23 +81,15 @@ class I2CLCD(bus: Int, device: Int) {
 
     // clocks EN to latch command
     private suspend fun lcd_strobe(data: Byte) {
-        try {
-            _device.write(byteArrayOf((data.toInt() or En or LCD_BACKLIGHT).toByte()))
-            delay(500.toDuration(DurationUnit.MICROSECONDS))
-            _device.write(byteArrayOf((data.toInt() and En.inv() or LCD_BACKLIGHT).toByte()))
-            delay(100.toDuration(DurationUnit.MICROSECONDS))
-        } catch (ex: Exception) {
-            println(ex.message)
-        }
+        _device.write(byteArrayOf((data.toInt() or En or LCD_BACKLIGHT).toByte()))
+        delay(500.toDuration(DurationUnit.MICROSECONDS))
+        _device.write(byteArrayOf((data.toInt() and En.inv() or LCD_BACKLIGHT).toByte()))
+        delay(100.toDuration(DurationUnit.MICROSECONDS))
     }
 
     private suspend fun lcd_write_four_bits(data: Byte) {
-        try {
-            _device.write(byteArrayOf((data.toInt() or LCD_BACKLIGHT).toByte()))
-            lcd_strobe(data)
-        } catch (ex: Exception) {
-            println(ex.message)
-        }
+        _device.write(byteArrayOf((data.toInt() or LCD_BACKLIGHT).toByte()))
+        lcd_strobe(data)
     }
 
     private suspend fun lcd_write(cmd: Byte, mode: Byte) {
@@ -169,8 +161,8 @@ class I2CLCD(bus: Int, device: Int) {
             pos_new = (0x54 + pos).toByte()
         }
         lcd_write((0x80 + pos_new).toByte())
-        for (i in 0 until string.length) {
-            lcd_write(string[i].code.toByte(), Rs.toByte())
+        for (element in string) {
+            lcd_write(element.code.toByte(), Rs.toByte())
         }
     }
 
