@@ -1,4 +1,6 @@
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
@@ -11,14 +13,17 @@ interface TestableDevice {
     suspend fun test()
 }
 
-class TestTemperatureSensor(val name: String) : BaseTemperatureSensor() {
+@Serializable
+class TestTemperatureSensor(override val id: String) : BaseTemperatureSensor() {
 
+    @Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
 
     fun interruptFor(duration: Duration) {
         interruptFor = duration
     }
 
+    @Transient
     var interruptFor: Duration = Duration.ZERO
 
     var i = 0.0
@@ -29,35 +34,38 @@ class TestTemperatureSensor(val name: String) : BaseTemperatureSensor() {
 
         i += 0.05
         return (((sin(i) + 1) * 500.0) + Random.nextDouble(50.0)).roundToInt().toDouble()
-             //.also { println("$name: $it°C") }
+             //.also { println("id: $it°C") }
     }
 }
 
-class TestRelay(val name: String) : ElectricRelay {
+@Serializable
+class TestRelay(override val id: String) : ElectricRelay {
     override var state: RelayState = RelayState.inactive
 
     override fun activate() {
         state = RelayState.activated
-        println("activate $name")
+        println("activate $id")
     }
     override fun deactivate() {
         state = RelayState.inactive
-        println("deactivate $name")
+        println("deactivate $id")
     }
 }
 
 
-class TestButton(val name: String) : PushButton() {
+@Serializable
+class TestButton(override val id: String) : PushButton() {
     suspend fun push() {
-        println("$name push")
+        println("$id push")
         pushed()
-        println("$name pushed")
+        println("$id pushed")
     }
 
     override suspend fun startSensing() {
     }
 }
 
+@Serializable
 object TestBasicUserCommunication : BasicUserCommunication {
     override suspend fun alert() {
         println("ALERT")

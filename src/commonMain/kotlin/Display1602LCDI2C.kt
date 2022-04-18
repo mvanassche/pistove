@@ -1,7 +1,11 @@
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
-class Display1602LCDI2C(val bus: Int, val device: Int) : StringDisplay, BackLightDisplay, TestableDevice {
+@Serializable
+class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) : Display, StringDisplay, BackLightDisplay, TestableDevice {
 
+    @Transient
     private var _lcd: I2CLCD? = null
     private suspend fun lcd(): I2CLCD {
         if(_lcd == null) {

@@ -1,4 +1,6 @@
-interface Display : Actuator {
+import kotlinx.serialization.Serializable
+
+sealed interface Display : Actuator {
 }
 
 interface StringDisplay : Display {

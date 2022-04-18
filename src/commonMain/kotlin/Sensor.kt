@@ -1,4 +1,6 @@
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -15,8 +17,9 @@ sealed interface TemperatureSensor : SamplingValuesSensor<Double> {
 
 abstract class BaseTemperatureSensor: BaseSamplingValuesSensor<Double>(0.0), TemperatureSensor
 
-
-abstract class PushButton : Sensor {
+@Serializable
+sealed class PushButton : Sensor {
+    @Transient
     val listeners = mutableListOf<() -> Unit>()
     fun addOnClickListener(listener: () -> Unit) {
         listeners.add(listener)

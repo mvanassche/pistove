@@ -1,16 +1,23 @@
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 enum class ValveState { open, opening, closing, closed }
 
+@Serializable
 class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay) : State<ValveState?>, Controller {
 
+    @Transient
     val timeout = 160.seconds // TODO persistent parameter.
 
-    val pstate: PersistentState<ValveState?> = PersistentState(null)
+    /*val pstate: PersistentState<ValveState?> = PersistentState(null)
     override var state: ValveState?
         get() = pstate.state
-        set(value) { pstate.state = value }
+        set(value) { pstate.state = value }*/
+
+    override var state: ValveState? = null
+
 
     suspend fun open(): Boolean {
         state = ValveState.opening

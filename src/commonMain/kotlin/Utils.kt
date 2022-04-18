@@ -5,10 +5,23 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
+
+
+interface Identifiable {
+    val id: String
+}
 
 interface State<V> {
     val state: V
@@ -90,4 +103,18 @@ fun List<InstantValue<Double>>.averageValue(duration: Duration): Double {
 
 inline fun <reified T> State<T>.toJson(): String {
     return Json.encodeToString(PersistentState(this.state))
+}
+
+object DurationSerializer : KSerializer<Duration> {
+    override fun deserialize(decoder: Decoder): Duration {
+        return decoder.decodeLong().toDuration(DurationUnit.NANOSECONDS)
+    }
+
+    override val descriptor: SerialDescriptor
+        get() = PrimitiveSerialDescriptor("Duration", PrimitiveKind.LONG)
+
+
+    override fun serialize(encoder: Encoder, value: Duration) {
+        encoder.encodeLong(value.inWholeNanoseconds)
+    }
 }

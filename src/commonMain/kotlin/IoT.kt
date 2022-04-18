@@ -8,7 +8,7 @@ interface Controller {
     val devices: Set<Device>
 }
 
-interface Device
+interface Device: Identifiable
 
 /**
  * Sensor: To determine certain physical or chemical characteristics and transform them into an electrical signal to make them digitally process able.

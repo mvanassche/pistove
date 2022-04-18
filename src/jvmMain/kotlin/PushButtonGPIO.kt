@@ -7,7 +7,7 @@ fun main(vararg args: String) {
         println("Testing push buttons")
         args.forEach {
             println("Create push button $it")
-            val button = PushButtonGPIO(it.toInt())
+            val button = PushButtonGPIO("test", it.toInt())
             button.addOnClickListener { println("Pushed $it") }
             launch {
                 println("Starting push button $it")

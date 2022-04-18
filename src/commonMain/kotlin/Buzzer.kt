@@ -1,9 +1,11 @@
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-interface Buzzer: Actuator {
+
+sealed interface Buzzer: Actuator {
 
     suspend fun beep(duration: Duration)
     suspend fun beep(frequency: Int, duration: Duration)

@@ -1,6 +1,7 @@
+import kotlinx.serialization.Serializable
 
 
-interface BasicUserCommunication {
+sealed interface BasicUserCommunication {
 
     suspend fun alert()
     suspend fun acknowledge()
@@ -8,6 +9,7 @@ interface BasicUserCommunication {
 
 }
 
+@Serializable
 class DisplayAndBuzzerUserCommunication(val display: Display, val buzzer: Buzzer) : BasicUserCommunication {
     override suspend fun alert() {
         buzzer.rrrrrr()

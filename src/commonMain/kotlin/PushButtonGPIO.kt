@@ -1,10 +1,12 @@
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.serialization.Serializable
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-class PushButtonGPIO(val bcm: Int) : PushButton(), TestableDevice {
+@Serializable
+class PushButtonGPIO(override val id: String, val bcm: Int) : PushButton(), TestableDevice {
     override suspend fun startSensing() {
         val input = pi.gpioDigitalInput(bcm, PullResistance.pull_down, 3.toDuration(DurationUnit.MILLISECONDS))
         input.addOnChangeListener {

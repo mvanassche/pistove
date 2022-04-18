@@ -1,11 +1,16 @@
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.math.roundToInt
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-class SHT31TemperaturSensor(val bus: Int, val device: Int) : BaseTemperatureSensor(), TestableDevice {
+@Serializable
+class SHT31TemperaturSensor(override val id: String, val bus: Int, val device: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
 
+    @Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
+    @Transient
     val _device: I2CBusDevice = pi.i2c(bus, device)
 
     override suspend fun startSensing() {

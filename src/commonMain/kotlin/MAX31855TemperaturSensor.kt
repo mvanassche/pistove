@@ -1,9 +1,15 @@
+@file:UseSerializers(DurationSerializer::class)
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlinx.serialization.UseSerializers
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-class MAX31855TemperaturSensor(channel: Int) : BaseTemperatureSensor(), TestableDevice {
+@Serializable
+class MAX31855TemperaturSensor(override val id: String, val channel: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
 
+    @Transient
     val max = MAX31855(channel)
 
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)

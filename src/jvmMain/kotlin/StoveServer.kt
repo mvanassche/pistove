@@ -86,6 +86,9 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                                 +"auto"
                             }
                         }
+                        div {
+                            id = "config"
+                        }
                     }
                 }
             }
@@ -109,6 +112,16 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                     try {
                         // TODO isn't there a direct way to send value serialized instead of using Frame.Text?
                         outgoing.trySend(Frame.Text(Json.encodeToString(stove.toStove())))
+                        delay(3.seconds)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+            webSocket("/stove-controller") {
+                while(true) {
+                    try {
+                        outgoing.trySend(Frame.Text(encodeToString(module, stove)))
                         delay(3.seconds)
                     } catch (e: Exception) {
                         e.printStackTrace()

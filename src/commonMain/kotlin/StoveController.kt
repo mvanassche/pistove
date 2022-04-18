@@ -2,37 +2,38 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Required
+import kotlinx.serialization.Serializable
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 
 fun stoveController(): StoveController {
-    val powerRelay = LowActiveGPIOElectricRelay(5)
-    val openCloseRelay = LowActiveGPIOElectricRelay( 6)
+    val powerRelay = LowActiveGPIOElectricRelay("power-relay", 5)
+    val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 6)
     val valve = ElectricValveController(powerRelay = powerRelay, openCloseRelay = openCloseRelay)
-    val chimney = MAX31855TemperaturSensor(0)
-    val room = SHT31TemperaturSensor(1, 0x45)
-    val buzzer = PassivePiezoBuzzerHardwarePWM(12)
-    val openButton = PushButtonGPIO(13)
-    val closeButton = PushButtonGPIO(26)
-    val autoButton = PushButtonGPIO(19)
-    val display = Display1602LCDI2C(1, 0x27)
-    return StoveController(valve, chimney, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
+    val fumes = MAX31855TemperaturSensor("stove-temperature", 0)
+    val room = SHT31TemperaturSensor("room-temperature", 1, 0x45)
+    val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
+    val openButton = PushButtonGPIO("open", 13)
+    val closeButton = PushButtonGPIO("close", 26)
+    val autoButton = PushButtonGPIO("auto", 19)
+    val display = Display1602LCDI2C("display", 1, 0x27)
+    val autoModeController: AutoModeController = CloseWhenCold(valve, fumes)
+    return StoveController(valve, fumes, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer), autoModeController)
 }
 
-class StoveController(
+@Serializable
+class StoveController constructor(
     val valve: ElectricValveController,
     val fumes: TemperatureSensor,
     val room: TemperatureSensor,
     val openButton: PushButton,
     val closeButton: PushButton,
     val autoButton: PushButton,
-    val userCommunication: BasicUserCommunication
+    val userCommunication: BasicUserCommunication,
+    val autoModeController: AutoModeController/* = CloseWhenCold(valve, fumes) // see https://github.com/Kotlin/kotlinx.serialization/issues/1904 */
 ) : Controller {
-    val autoModeController: AutoModeController
-    init { // TODO ? move this into a start function (all controllers? interface?)
-        autoModeController = CloseWhenCold(valve, fumes) // TODO make the choice of controller parametric?
-    }
 
     override suspend fun startControlling(): Boolean {
         // ??? what to do? should we start all here or assume they are started elsewhere?
@@ -52,7 +53,7 @@ class StoveController(
     }
 
     override val devices: Set<Device>
-        get() = setOf(fumes, room, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices
+        get() = setOf(fumes, room, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices + autoModeController.devices
 
     fun stopControlling() {
 
@@ -96,12 +97,13 @@ class StoveController(
     }
 }
 
-
+@Serializable
 sealed class AutoModeController : Controller {
     abstract val valve: ElectricValveController
     abstract val fumes: TemperatureSensor
 }
 
+@Serializable
 class CloseWhenCold(override val valve: ElectricValveController, override val fumes: TemperatureSensor) : AutoModeController() {
     override suspend fun startControlling(): Boolean {
         when(valve.state) {
