@@ -16,6 +16,8 @@ interface TestableDevice {
 @Serializable
 class TestTemperatureSensor(override val id: String) : BaseTemperatureSensor() {
 
+    override var lastValue: InstantValue<Double>? = null
+
     @Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
 

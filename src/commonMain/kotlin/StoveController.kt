@@ -34,6 +34,8 @@ class StoveController constructor(
     val userCommunication: BasicUserCommunication,
     val autoModeController: AutoModeController/* = CloseWhenCold(valve, fumes) // see https://github.com/Kotlin/kotlinx.serialization/issues/1904 */
 ) : Controller {
+    constructor(valve: ElectricValveController, fumes: TemperatureSensor, room: TemperatureSensor, openButton: PushButton, closeButton: PushButton, autoButton: PushButton, userCommunication: BasicUserCommunication)
+            : this(valve, fumes, room, openButton, closeButton, autoButton, userCommunication, CloseWhenCold(valve, fumes))
 
     override suspend fun startControlling(): Boolean {
         // ??? what to do? should we start all here or assume they are started elsewhere?

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -59,9 +60,13 @@ interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<Ins
 abstract class BaseSamplingValuesSensor<V>(
     val initialValue: V,
     val flow: MutableStateFlow<InstantValue<V>> = MutableStateFlow(InstantValue(initialValue, Instant.DISTANT_PAST))
-): SamplingValuesSensor<V>, StateFlow<InstantValue<V>> by flow {
+): SamplingValuesSensor<V>, StateFlow<InstantValue<V>> by flow/*, SensorWithState<V>*/ {
+
+
+    abstract var lastValue: InstantValue<V>?
 
     abstract val samplingPeriod: Duration
+
     abstract suspend fun sampleValue(): V
 
     override val state: InstantValue<V>
@@ -70,7 +75,9 @@ abstract class BaseSamplingValuesSensor<V>(
     override suspend fun startSensing() {
         while(true) {
             delay(samplingPeriod.inWholeMilliseconds)
-            flow.emit(InstantValue(sampleValue()))
+            val sample = InstantValue(sampleValue())
+            lastValue = sample
+            flow.emit(sample)
         }
     }
 

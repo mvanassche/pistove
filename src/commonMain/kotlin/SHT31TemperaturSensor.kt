@@ -1,4 +1,6 @@
 import kotlinx.coroutines.delay
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.math.roundToInt
@@ -7,6 +9,8 @@ import kotlin.time.toDuration
 
 @Serializable
 class SHT31TemperaturSensor(override val id: String, val bus: Int, val device: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
+
+    override var lastValue: InstantValue<Double>? = null
 
     @Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)

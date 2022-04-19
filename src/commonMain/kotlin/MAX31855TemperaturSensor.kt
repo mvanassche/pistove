@@ -12,6 +12,9 @@ class MAX31855TemperaturSensor(override val id: String, val channel: Int) : Temp
     @Transient
     val max = MAX31855(channel)
 
+    override var lastValue: InstantValue<Double>? = null
+
+    //@Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
 
     override suspend fun sampleValue(): Double {
@@ -24,5 +27,6 @@ class MAX31855TemperaturSensor(override val id: String, val channel: Int) : Temp
             delay(500)
         }
     }
+
 }
 

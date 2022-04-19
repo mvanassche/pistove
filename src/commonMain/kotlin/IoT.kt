@@ -18,6 +18,10 @@ interface Sensor : Device {
     suspend fun startSensing()
 }
 
+interface SensorWithState<Value> : Sensor {
+    val lastValue: InstantValue<Value>?
+}
+
 /**
  * Actuator: Actuators transform electrical signals (energy, usually transported by air, electric current, or liquid) into different forms of energy
  * such as motion or pressure. This is the opposite of what sensors do, which is to capture physical characteristics and transform them into electrical signals.
