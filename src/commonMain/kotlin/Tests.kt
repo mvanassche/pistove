@@ -69,6 +69,9 @@ class TestButton(override val id: String) : PushButton() {
 
 @Serializable
 object TestBasicUserCommunication : BasicUserCommunication {
+    override suspend fun welcome() {}
+    override suspend fun goodbye() {}
+
     override suspend fun alert() {
         println("ALERT")
     }

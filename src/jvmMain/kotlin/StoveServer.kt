@@ -24,11 +24,15 @@ fun main() {
     val server = startWebServer(stove)
 
     Runtime.getRuntime().addShutdownHook(Thread() {
+        if(!context.isShutdown) {
+            runBlocking { stove.userCommunication.goodbye() }
+        }
         server.stop(0, 100)
         context.shutdown()
     })
 
     runBlocking {
+        stove.userCommunication.welcome()
         launch { stove.startControlling() }
         if(display != null) {
             launch {
