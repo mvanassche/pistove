@@ -4,8 +4,7 @@ import kotlinx.serialization.Transient
 import kotlin.time.Duration
 
 @Serializable
-class PassivePiezoBuzzerHardwarePWM(override val id: String, val bcm: Int, val hardware: Boolean) : Buzzer, TestableDevice {
-    constructor(id: String, bcm: Int) : this(id, bcm, (bcm in listOf(12, 13, 18, 19))) // see https://github.com/Kotlin/kotlinx.serialization/issues/1904
+class PassivePiezoBuzzerHardwarePWM(override val id: String, val bcm: Int, val hardware: Boolean = (bcm in listOf(12, 13, 18, 19))) : Buzzer, TestableDevice {
 
     @Transient
     val pwm: GPIOPWM = pi.pwm(bcm, hardware).also {
