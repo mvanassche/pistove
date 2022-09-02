@@ -3,7 +3,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
-class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) : Display, StringDisplay, BackLightDisplay, TestableDevice {
+class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) : Display, StringDisplay, BackLightDisplay, TestableDevice, State<String> {
 
     @Transient
     private var _lcd: I2CLCD? = null
@@ -18,6 +18,7 @@ class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) 
     }
 
     override suspend fun display(value: String) {
+        state = value
         if(value.length > 16) {
             var splitAt = value.substring(0, 16).indexOfLast { it.isWhitespace() }
             if (splitAt == -1) {
@@ -43,8 +44,5 @@ class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) 
         display("it works...")
     }
 
+    override var state: String = ""
 }
-
-/*fun main(vararg args: String) {
-    Display1602LCDI2C(args[0].toInt(), args[1].toInt(16)).display(args[2])
-}*/

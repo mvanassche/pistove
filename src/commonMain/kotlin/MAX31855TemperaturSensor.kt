@@ -17,8 +17,14 @@ class MAX31855TemperaturSensor(override val id: String, val channel: Int) : Temp
     //@Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
 
-    override suspend fun sampleValue(): Double {
-        return max.temperature.toDouble()
+    override suspend fun sampleValue(): Double? {
+        return max.temperature.let {
+            if(!it.isNaN()) {
+                it.toDouble()
+            } else {
+                null
+            }
+        }
     }
 
     override suspend fun test() {

@@ -4,10 +4,7 @@ enum class RelayState { activated, inactive }
 
 
 @Serializable
-sealed interface ElectricRelay: Actuator {
-    // TODO decide between var vs functions!
-    val state: RelayState
-    fun activate()
-    fun deactivate()
+sealed interface ElectricRelay: Actuator, State<RelayState> {
+    override var state: RelayState
 }
 

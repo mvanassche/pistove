@@ -1,3 +1,4 @@
+// inspired by https://github.com/twyatt/pi-max31855/blob/master/src/com/traviswyatt/pi/max31855/MAX31855.java
 
 class MAX31855(val channel: Int) {
     var spi: GPIOSPI = pi.spi(channel)
@@ -63,7 +64,12 @@ class MAX31855(val channel: Int) {
                 getThermocoupleTemperature(raw[1])
             } else {
                 // TODO
-                println(faults)
+                if ((faults and FAULT_OPEN_CIRCUIT_BIT.toInt()) == FAULT_OPEN_CIRCUIT_BIT.toInt())
+			        println("Open Circuit")
+                if ((faults and FAULT_SHORT_TO_GND_BIT.toInt()) == FAULT_SHORT_TO_GND_BIT.toInt())
+        			println("Short To GND");
+                if ((faults and FAULT_SHORT_TO_VCC_BIT.toInt()) == FAULT_SHORT_TO_VCC_BIT.toInt())
+        			println("Short To VCC");
                 Float.NaN
             }
         }

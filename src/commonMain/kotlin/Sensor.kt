@@ -15,7 +15,7 @@ sealed interface TemperatureSensor : SamplingValuesSensor<Double> {
     }
 }
 
-abstract class BaseTemperatureSensor: BaseSamplingValuesSensor<Double>(0.0), TemperatureSensor
+sealed class BaseTemperatureSensor: BaseSamplingValuesSensor<Double>(0.0), TemperatureSensor
 
 @Serializable
 sealed class PushButton : Sensor {

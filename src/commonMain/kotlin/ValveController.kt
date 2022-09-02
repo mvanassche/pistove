@@ -6,7 +6,7 @@ import kotlinx.serialization.Transient
 enum class ValveState { open, opening, closing, closed }
 
 @Serializable
-class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay) : State<ValveState?>, Controller {
+class ElectricValveController(override val id: String, val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay) : State<ValveState?>, Controller {
 
     @Transient
     val timeout = 160.seconds // TODO persistent parameter.
@@ -21,13 +21,13 @@ class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay:
 
     suspend fun open(): Boolean {
         state = ValveState.opening
-        openCloseRelay.deactivate()
-        powerRelay.activate()
+        openCloseRelay.state = RelayState.inactive
+        powerRelay.state = RelayState.activated
         delay(timeout)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.opening) {
                 state = ValveState.open
-                powerRelay.deactivate() // optional ?
+                powerRelay.state = RelayState.inactive // optional ?
                 return true
             } else {
                 return false
@@ -37,13 +37,13 @@ class ElectricValveController(val powerRelay: ElectricRelay, val openCloseRelay:
 
     suspend fun close(): Boolean {
         state = ValveState.closing
-        openCloseRelay.activate()
-        powerRelay.activate()
+        openCloseRelay.state = RelayState.activated
+        powerRelay.state = RelayState.activated
         delay(timeout)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.closing) {
                 state = ValveState.closed
-                powerRelay.deactivate() // optional ?
+                powerRelay.state = RelayState.inactive // optional ?
                 return true
             } else {
                 return false

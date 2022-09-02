@@ -11,20 +11,20 @@ import kotlin.time.toDuration
 fun stoveController(): StoveController {
     val powerRelay = LowActiveGPIOElectricRelay("power-relay", 5)
     val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 6)
-    val valve = ElectricValveController(powerRelay = powerRelay, openCloseRelay = openCloseRelay)
+    val valve = ElectricValveController("air-intake-valve", powerRelay = powerRelay, openCloseRelay = openCloseRelay)
     val fumes = MAX31855TemperaturSensor("stove-temperature", 0)
     val room = SHT31TemperaturSensor("room-temperature", 1, 0x45)
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
-    val openButton = PushButtonGPIO("open", 13)
-    val closeButton = PushButtonGPIO("close", 26)
-    val autoButton = PushButtonGPIO("auto", 19)
+    val openButton = PushButtonGPIO("open-button", 13)
+    val closeButton = PushButtonGPIO("close-button", 26)
+    val autoButton = PushButtonGPIO("auto-button", 19)
     val display = Display1602LCDI2C("display", 1, 0x27)
-    val autoModeController: AutoModeController = CloseWhenCold(valve, fumes)
-    return StoveController(valve, fumes, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer), autoModeController)
+    return StoveController("stove", valve, fumes, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
 }
 
 @Serializable
-class StoveController constructor(
+class StoveController(
+    override val id: String,
     val valve: ElectricValveController,
     val fumes: TemperatureSensor,
     val room: TemperatureSensor,
@@ -32,7 +32,7 @@ class StoveController constructor(
     val closeButton: PushButton,
     val autoButton: PushButton,
     val userCommunication: BasicUserCommunication,
-    val autoModeController: AutoModeController = CloseWhenCold(valve, fumes)
+    val autoModeController: AutoModeController = CloseWhenCold("auto-close-when-cold", valve, fumes)
 ) : Controller {
 
     override suspend fun startControlling(): Boolean {
@@ -54,6 +54,9 @@ class StoveController constructor(
 
     override val devices: Set<Device>
         get() = setOf(fumes, room, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices + autoModeController.devices
+
+    override val identifieables: Set<Identifiable>
+        get() = devices + autoModeController + valve
 
     fun stopControlling() {
 
@@ -104,7 +107,7 @@ sealed class AutoModeController : Controller {
 }
 
 @Serializable
-class CloseWhenCold(override val valve: ElectricValveController, override val fumes: TemperatureSensor) : AutoModeController() {
+class CloseWhenCold(override val id: String, override val valve: ElectricValveController, override val fumes: TemperatureSensor) : AutoModeController() {
     override suspend fun startControlling(): Boolean {
         when(valve.state) {
             ValveState.open -> {
@@ -122,6 +125,7 @@ class CloseWhenCold(override val valve: ElectricValveController, override val fu
 
     override val devices: Set<Device>
         get() = setOf(fumes) + valve.devices
+
 }
 
 

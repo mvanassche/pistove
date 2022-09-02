@@ -40,7 +40,7 @@ fun <V> State<InstantValue<V>>.maybeCurrentValue(validityPeriod: Duration): V? {
     }
 }
 
-interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<InstantValue<V>> {
+sealed interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<InstantValue<V>>, SensorWithState<V> {
 
     suspend fun currentValue(validityPeriod: Duration): V {
         if(value.time >= Clock.System.now() - validityPeriod) {
@@ -60,14 +60,14 @@ interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<Ins
 abstract class BaseSamplingValuesSensor<V>(
     val initialValue: V,
     val flow: MutableStateFlow<InstantValue<V>> = MutableStateFlow(InstantValue(initialValue, Instant.DISTANT_PAST))
-): SamplingValuesSensor<V>, StateFlow<InstantValue<V>> by flow/*, SensorWithState<V>*/ {
+): SamplingValuesSensor<V>, StateFlow<InstantValue<V>> by flow, SensorWithState<V> {
 
 
-    abstract var lastValue: InstantValue<V>?
+    abstract override var lastValue: InstantValue<V>?
 
     abstract val samplingPeriod: Duration
 
-    abstract suspend fun sampleValue(): V
+    abstract suspend fun sampleValue(): V?
 
     override val state: InstantValue<V>
         get() = value
@@ -75,9 +75,12 @@ abstract class BaseSamplingValuesSensor<V>(
     override suspend fun startSensing() {
         while(true) {
             delay(samplingPeriod.inWholeMilliseconds)
-            val sample = InstantValue(sampleValue())
-            lastValue = sample
-            flow.emit(sample)
+            val sample = sampleValue()
+            if(sample != null) {
+                val timedSample = InstantValue<V>(sample)
+                lastValue = timedSample
+                flow.emit(timedSample)
+            }
         }
     }
 

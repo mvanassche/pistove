@@ -42,6 +42,7 @@ val format = Json {
 
 fun <T> encodeToJsonElement(serializersModule: SerializersModule, serializer: SerializationStrategy<T>, value: T): JsonElement {
     val encoder = JSONGraphEncoder(serializersModule)
+    //format.encodeToJsonElement(serializer, value)
     encoder.encodeSerializableValue(serializer, value)
     return encoder.element!!
 }
@@ -160,6 +161,8 @@ abstract class JSONGraphCompositeEncoder(override val serializersModule: Seriali
                     jsonObjectMap[descriptor.getElementName(index)] = encoder.element!!
                 }
             }
+        } else {
+            //println("Not encode ${descriptor.getElementName(index)}")
         }
     }
 

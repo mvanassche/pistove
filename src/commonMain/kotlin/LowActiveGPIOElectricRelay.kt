@@ -6,13 +6,13 @@ class LowActiveGPIOElectricRelay(override val id: String, val bcm: Int, /*@Requi
         pi.gpioDigitalOutput(bcm, relayStateToDigitalState(defaultState))
     }
 
-    override val state: RelayState
+    override var state: RelayState = defaultState
         get() {
-            return when(output.state) {
-                DigitalState.high -> RelayState.inactive
-                DigitalState.low -> RelayState.activated
-                else -> RelayState.inactive // ???
-            }
+            return field
+        }
+        set(value) {
+            field = value
+            output.state = relayStateToDigitalState(value)
         }
 
     fun relayStateToDigitalState(state: RelayState): DigitalState {
@@ -21,23 +21,4 @@ class LowActiveGPIOElectricRelay(override val id: String, val bcm: Int, /*@Requi
             RelayState.inactive -> DigitalState.high
         }
     }
-
-    override fun activate() {
-        output.state = DigitalState.low
-    }
-
-    override fun deactivate() {
-        output.state = DigitalState.high
-    }
 }
-
-
-/*
-fun main(vararg args: String) {
-    if (args[1] == "1") {
-        LowActiveGPIOElectricRelay(args[0].toInt()).activate()
-    } else {
-        LowActiveGPIOElectricRelay(args[0].toInt()).deactivate()
-    }
-}*/
-

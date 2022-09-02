@@ -9,7 +9,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 
-interface TestableDevice {
+sealed interface TestableDevice {
     suspend fun test()
 }
 
@@ -43,15 +43,6 @@ class TestTemperatureSensor(override val id: String) : BaseTemperatureSensor() {
 @Serializable
 class TestRelay(override val id: String) : ElectricRelay {
     override var state: RelayState = RelayState.inactive
-
-    override fun activate() {
-        state = RelayState.activated
-        println("activate $id")
-    }
-    override fun deactivate() {
-        state = RelayState.inactive
-        println("deactivate $id")
-    }
 }
 
 

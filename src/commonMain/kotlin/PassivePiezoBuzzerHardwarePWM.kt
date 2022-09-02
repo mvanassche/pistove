@@ -30,12 +30,3 @@ class PassivePiezoBuzzerHardwarePWM(override val id: String, val bcm: Int, val h
         delay(500)
     }
 }
-
-/*fun main(vararg args: String) {
-    runBlocking {
-        PassivePiezoBuzzerHardwarePWM(args[0].toInt()).apply {
-            bipBip()
-            rrrrrr()
-        }
-    }
-}*/

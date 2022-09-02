@@ -12,10 +12,14 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Clock
 import kotlinx.html.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.time.Duration
+import java.time.ZonedDateTime
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
@@ -47,8 +51,14 @@ fun main() {
                 }
             }
         }
+        launch {
+            while (true) {
+                delay(15.0.minutes)
+                val now = ZonedDateTime.now()
+                File("data/history/${now.year}.json").appendText(Json.encodeToString(StoveControllerHistoryPoint(Clock.System.now(), stove)))
+            }
+        }
     }
-
 }
 
 
@@ -111,7 +121,7 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
             get("/shutdown") {
                 System.exit(0)
             }
-            webSocket("/stove") {
+            /*webSocket("/ws/stove") {
                 while(true) {
                     try {
                         // TODO isn't there a direct way to send value serialized instead of using Frame.Text?
@@ -121,8 +131,8 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         e.printStackTrace()
                     }
                 }
-            }
-            webSocket("/stove-controller") {
+            }*/
+            webSocket("/ws/stove-controller") {
                 while(true) {
                     try {
                         outgoing.trySend(Frame.Text(encodeToString(module, stove)))
@@ -132,7 +142,7 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                     }
                 }
             }
-            webSocket("/display") {
+            /*webSocket("/ws/display") {
                 while(true) {
                     try {
                         outgoing.trySend(Frame.Text(stove.stateMessage()))
@@ -141,7 +151,7 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         e.printStackTrace()
                     }
                 }
-            }
+            }*/
             static("/static") {
                 resources()
             }
