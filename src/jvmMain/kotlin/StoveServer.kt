@@ -55,7 +55,11 @@ fun main() {
             while (true) {
                 delay(15.0.minutes)
                 val now = ZonedDateTime.now()
-                File("data/history/${now.year}.json").appendText(Json.encodeToString(StoveControllerHistoryPoint(Clock.System.now(), stove)))
+                File("./data/history/${now.year}.json").apply {
+                    parentFile.mkdirs()
+                    createNewFile()
+                }
+                    .appendText(format.encodeToString(StoveControllerHistoryPoint(Clock.System.now(), stove)))
             }
         }
     }
