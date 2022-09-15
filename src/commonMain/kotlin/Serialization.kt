@@ -16,6 +16,7 @@ val module = SerializersModule {
     polymorphic(TemperatureSensor::class) {
         subclass(MAX31855TemperaturSensor::class)
         subclass(SHT31TemperaturSensor::class)
+        subclass(DS18B20TempartureSensor::class)
     }
     polymorphic(Display::class) {
         subclass(Display1602LCDI2C::class)
@@ -83,7 +84,7 @@ class JSONGraphEncoder(override val serializersModule: SerializersModule, val id
     }
     @ExperimentalSerializationApi
     override fun encodeInline(inlineDescriptor: SerialDescriptor): Encoder {
-        TODO("Not yet implemented")
+        return this
     }
     override fun encodeInt(value: Int) {
         element = JsonPrimitive(value)
@@ -228,7 +229,7 @@ class JSONGraphDecoder constructor(override val serializersModule: SerializersMo
 
     @ExperimentalSerializationApi
     override fun decodeInline(inlineDescriptor: SerialDescriptor): Decoder {
-        TODO("Not yet implemented")
+        return this
     }
 
     override fun decodeInt(): Int {

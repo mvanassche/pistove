@@ -1,3 +1,4 @@
+@file:UseSerializers(DurationSerializer::class)
 import com.pi4j.Pi4J
 import com.pi4j.io.gpio.digital.DigitalInput
 import com.pi4j.io.gpio.digital.DigitalOutput
@@ -10,7 +11,11 @@ import com.pi4j.io.spi.Spi
 import com.pi4j.io.spi.SpiProvider
 import com.pi4j.plugin.pigpio.provider.pwm.PiGpioPwmProvider
 import kotlinx.coroutines.sync.Mutex
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.serialization.UseSerializers
+import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 import kotlin.time.Duration
 
 
@@ -124,7 +129,35 @@ class Pi4JRasperryPi : RaspberryPi {
             }
         }
     }
+
+    private val oneDeviceFolderName = Regex("[0-9a-f]{2}-[0-9a-f]{12}")
+    override suspend fun availableOneWireDevices(): Set<OneWireDevice> {
+        try {
+            return Path("/sys/bus/w1/devices").listDirectoryEntries("*").filter { it.name.matches(oneDeviceFolderName) }
+                .map { OneWireDeviceId(it.name.substring(0, 2).toUShort(16), it.name.substring(3).toULong(16)) }
+                .map { oneWireDevice(it) }
+                .toSet()
+        } catch (e: Exception) {
+            return emptySet()
+        }
+    }
+
+    override fun oneWireDevice(id: OneWireDeviceId): OneWireDevice {
+        /*return when(id.familyCode.toInt()) {
+            0x28 -> OneWireDS18B20Impl(id)
+            else -> null
+        }*/
+        return object : OneWireDevice {
+            override val oneWireId = id
+
+            override suspend fun read(): String {
+                return File("/sys/bus/w1/devices/$oneWireId/w1_slave").readText(Charsets.UTF_8)
+            }
+
+        }
+    }
 }
+
 
 fun com.pi4j.io.gpio.digital.DigitalState.toState(): DigitalState? {
     return when(this) {

@@ -5,13 +5,12 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 
+
 sealed interface TemperatureSensor : SamplingValuesSensor<Double> {
 
     suspend fun stateMessage(): String {
-        return withTimeoutOrNull(1000) {
-            val result = currentValue(10.toDuration(DurationUnit.SECONDS))
-            "${result}°C"
-        } ?: "?°C"
+        val t = currentValueOrNull(10.toDuration(DurationUnit.SECONDS))
+        return t?.let { "${t}°C" } ?: "?°C"
     }
 }
 

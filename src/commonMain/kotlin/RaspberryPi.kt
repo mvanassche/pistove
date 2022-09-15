@@ -12,6 +12,10 @@ interface RaspberryPi {
     fun pwm(bcm: Int, hardware: Boolean): GPIOPWM
 
     fun spi(channel: Int): GPIOSPI
+
+    suspend fun availableOneWireDevices(): Set<OneWireDevice>
+    fun oneWireDevice(id: OneWireDeviceId): OneWireDevice?
+
 }
 
 interface GPIOProtocol
@@ -51,6 +55,21 @@ interface GPIOPWM : GPIOProtocol {
 interface GPIOSPI : GPIOProtocol {
     fun transfer(bytes: ByteArray)
 }
+
+@Serializable
+data class OneWireDeviceId(val familyCode: UShort, val address: ULong) {
+    constructor(asString: String) : this(asString.substring(0, 2).toUShort(16), asString.substring(3).toULong(16))
+    override fun toString(): String {
+        //28-1b9c071e64ff
+        return familyCode.toString(16).padStart(2, '0') + "-" + address.toString(16).padStart(12, '0')
+    }
+}
+
+interface OneWireDevice : GPIOProtocol {
+    val oneWireId: OneWireDeviceId
+    suspend fun read(): String // not sure that's correct, could be bytes? what is the general case?
+}
+
 
 val pi by lazy { raspberryPiFromEnvironment() }
 expect fun raspberryPiFromEnvironment(): RaspberryPi
@@ -93,6 +112,19 @@ object DummyPi : RaspberryPi {
     override fun spi(channel: Int): GPIOSPI {
         return object : GPIOSPI {
             override fun transfer(bytes: ByteArray) {}
+        }
+    }
+
+    override suspend fun availableOneWireDevices(): Set<OneWireDevice> {
+        return emptySet()
+    }
+
+    override fun oneWireDevice(id: OneWireDeviceId): OneWireDevice {
+        return object : OneWireDevice {
+            override val oneWireId = id
+            override suspend fun read(): String {
+                return ""
+            }
         }
     }
 }

@@ -42,6 +42,14 @@ fun <V> State<InstantValue<V>>.maybeCurrentValue(validityPeriod: Duration): V? {
 
 sealed interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<InstantValue<V>>, SensorWithState<V> {
 
+    fun currentValueOrNull(validityPeriod: Duration): V? {
+        if(value.time >= Clock.System.now() - validityPeriod) {
+            return value.value
+        } else {
+            return null
+        }
+    }
+
     suspend fun currentValue(validityPeriod: Duration): V {
         if(value.time >= Clock.System.now() - validityPeriod) {
             return value.value

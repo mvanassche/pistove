@@ -1,8 +1,6 @@
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -19,7 +17,8 @@ fun stoveController(): StoveController {
     val closeButton = PushButtonGPIO("close-button", 26)
     val autoButton = PushButtonGPIO("auto-button", 19)
     val display = Display1602LCDI2C("display", 1, 0x27)
-    return StoveController("stove", valve, fumes, room, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
+    val outsideTemperatureSensor = DS18B20TempartureSensor("outside-temperature", 0x1b9c071e64ff.toULong())
+    return StoveController("stove", valve, fumes, room, outsideTemperatureSensor, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
 }
 
 @Serializable
@@ -28,6 +27,7 @@ class StoveController(
     val valve: ElectricValveController,
     val fumes: TemperatureSensor,
     val room: TemperatureSensor,
+    val outside: TemperatureSensor,
     val openButton: PushButton,
     val closeButton: PushButton,
     val autoButton: PushButton,
@@ -41,6 +41,7 @@ class StoveController(
             launch { valve.startControlling() }
             launch { fumes.startSensing() }
             launch { room.startSensing() }
+            launch { outside.startSensing() }
             launch { openButton.startSensing() }
             launch { closeButton.startSensing() }
             launch { autoButton.startSensing() }
@@ -53,7 +54,7 @@ class StoveController(
     }
 
     override val devices: Set<Device>
-        get() = setOf(fumes, room, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices + autoModeController.devices
+        get() = setOf(fumes, room, outside, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices + autoModeController.devices
 
     override val identifieables: Set<Identifiable>
         get() = devices + autoModeController + valve
@@ -86,7 +87,7 @@ class StoveController(
     }
 
     suspend fun stateMessage(): String {
-        return "${valve.stateMessage()} ${fumes.stateMessage()} ${room.stateMessage()}"
+        return "${valve.stateMessage()} ${fumes.stateMessage()} ${room.stateMessage()} ${outside.stateMessage()}"
     }
 
     // TODO generalize this? be creative here maybe these business objects should be part of the state of the controller, being updated permanently??
