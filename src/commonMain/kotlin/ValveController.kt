@@ -61,7 +61,7 @@ class ElectricValveController(override val id: String, val powerRelay: ElectricR
         get() = setOf(powerRelay, openCloseRelay)
 
     suspend fun stateMessage(): String {
-        return state.toString()
+        return state?.toString() ?: "?"
     }
 
 }

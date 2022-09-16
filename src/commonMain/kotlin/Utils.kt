@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -15,6 +14,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -134,5 +137,38 @@ object DurationSerializer : KSerializer<Duration> {
 
     override fun serialize(encoder: Encoder, value: Duration) {
         encoder.encodeLong(value.inWholeNanoseconds)
+    }
+}
+
+
+fun padStringElementsToFit(maxSize: Int, elements: List<String>): String {
+    val line: String
+    if(elements.sumOf { it.length } > maxSize) {
+        line = elements.joinToString("").substring(0, maxSize - 1)
+    } else {
+        val stringsPadded = elements.toMutableList()
+        val averageLength = (maxSize - elements.last().length).toDouble() / (elements.size - 1).toDouble()
+        var spacesToAdd = maxSize - elements.sumOf { it.length }
+        (0..elements.lastIndex - 1).forEach {
+            val endIndex = stringsPadded.take(it + 1).sumOf { it.length }
+            val difference = min(max(0, ((averageLength * (it + 1)) - endIndex).roundToInt()), spacesToAdd)
+            spacesToAdd -= difference
+            stringsPadded[it] = stringsPadded[it] + " ".repeat(difference)
+        }
+        if(spacesToAdd > 0) {
+            stringsPadded[stringsPadded.lastIndex] = stringsPadded[stringsPadded.lastIndex] + " ".repeat(spacesToAdd)
+        }
+        line = stringsPadded.joinToString("")
+    }
+    return line
+}
+
+
+fun Double.toString(precision: Int): String {
+    if(precision <= 0) { // no support for negative, sorry
+        return this.roundToInt().toString()
+    } else {
+        val digits = (this * 10.0.pow(precision)).roundToInt().toString()
+        return digits.dropLast(precision) + "." + digits.takeLast(precision)
     }
 }

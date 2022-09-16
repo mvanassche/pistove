@@ -16,10 +16,11 @@ class ReplayTest {
                 val valve = ElectricValveController("air-valve", TestRelay("open"), TestRelay("close"))
                 val chimney = TestTemperatureSensor("chimney")
                 val room = TestTemperatureSensor("room")
+                val outside = TestTemperatureSensor("outside")
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController("stove",valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
+                val stove = StoveController("stove",valve, chimney, room, outside, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 launch { closeButton.push() }
@@ -46,10 +47,11 @@ class ReplayTest {
                 val valve = ElectricValveController("air-valve", TestRelay("open"), TestRelay("close"))
                 val chimney = TestTemperatureSensor("chimney")
                 val room = TestTemperatureSensor("room")
+                val outside = TestTemperatureSensor("outside")
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController("stove",valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
+                val stove = StoveController("stove",valve, chimney, room, outside, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 launch { closeButton.push() }
@@ -84,10 +86,11 @@ class ReplayTest {
                 val valve = ElectricValveController("air-valve", TestRelay("open"), TestRelay("close"))
                 val chimney = TestTemperatureSensor("chimney")
                 val room = TestTemperatureSensor("room")
+                val outside = TestTemperatureSensor("outside")
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController("stove",valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
+                val stove = StoveController("stove",valve, chimney, room, outside, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 launch { closeButton.push() }
@@ -117,10 +120,11 @@ class ReplayTest {
                 val valve = ElectricValveController("air-valve", TestRelay("open"), TestRelay("close"))
                 val chimney = TestTemperatureSensor("chimney")
                 val room = TestTemperatureSensor("room")
+                val outside = TestTemperatureSensor("outside")
                 val openButton = TestButton("open button")
                 val closeButton = TestButton("close button")
                 val autoButton = TestButton("auto button")
-                val stove = StoveController("stove",valve, chimney, room, openButton, closeButton, autoButton, TestBasicUserCommunication)
+                val stove = StoveController("stove",valve, chimney, room, outside, openButton, closeButton, autoButton, TestBasicUserCommunication)
                 launch { stove.startControlling() }
 
                 val x = launch { closeButton.push() }

@@ -17,8 +17,14 @@ class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) 
         return _lcd!!
     }
 
-    override suspend fun display(value: String) {
+    fun sanitizeString(s: String): String {
+        return s.replace('°', 223.toChar())
+    }
+
+    override suspend fun display(value0: String) {
+        val value = sanitizeString(value0)
         state = value
+        // TODO _lcd.clear() once in a while
         if(value.length > 16) {
             var splitAt = value.substring(0, 16).indexOfLast { it.isWhitespace() }
             if (splitAt == -1) {
@@ -28,6 +34,13 @@ class Display1602LCDI2C(override val id: String, val bus: Int, val device: Int) 
             lcd().display_string(value.substring(splitAt + 1).padEnd(16, ' '), 2)
         } else {
             lcd().display_string(value.padEnd(16, ' '), 1)
+        }
+    }
+
+    override suspend fun display(linesOfElements: List<List<String>>) {
+        linesOfElements.forEachIndexed { index, strings ->
+            val line = padStringElementsToFit(16, strings)
+            lcd().display_string(sanitizeString(line), index + 1)
         }
     }
 

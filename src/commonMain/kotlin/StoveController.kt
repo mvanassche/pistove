@@ -10,14 +10,14 @@ fun stoveController(): StoveController {
     val powerRelay = LowActiveGPIOElectricRelay("power-relay", 5)
     val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 6)
     val valve = ElectricValveController("air-intake-valve", powerRelay = powerRelay, openCloseRelay = openCloseRelay)
-    val fumes = MAX31855TemperaturSensor("stove-temperature", 0)
-    val room = SHT31TemperaturSensor("room-temperature", 1, 0x45)
+    val fumes = MAX31855TemperaturSensor("stove-temperature", 0).also { it.usefulPrecision = 0 }
+    val room = SHT31TemperaturSensor("room-temperature", 1, 0x45).also { it.usefulPrecision = 1 }
+    val outsideTemperatureSensor = DS18B20TempartureSensor("outside-temperature", 0x1b9c071e64ff.toULong()).also { it.usefulPrecision = 0 }
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
     val openButton = PushButtonGPIO("open-button", 13)
     val closeButton = PushButtonGPIO("close-button", 26)
     val autoButton = PushButtonGPIO("auto-button", 19)
     val display = Display1602LCDI2C("display", 1, 0x27)
-    val outsideTemperatureSensor = DS18B20TempartureSensor("outside-temperature", 0x1b9c071e64ff.toULong())
     return StoveController("stove", valve, fumes, room, outsideTemperatureSensor, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
 }
 
@@ -86,8 +86,8 @@ class StoveController(
         }
     }
 
-    suspend fun stateMessage(): String {
-        return "${valve.stateMessage()} ${fumes.stateMessage()} ${room.stateMessage()} ${outside.stateMessage()}"
+    suspend fun stateDisplayString(): List<List<String>> {
+        return listOf(listOf(room.stateMessage(), fumes.stateMessage(), "??°"), listOf(outside.stateMessage(), valve.stateMessage(), "??%"))
     }
 
     // TODO generalize this? be creative here maybe these business objects should be part of the state of the controller, being updated permanently??
