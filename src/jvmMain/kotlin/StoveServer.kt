@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.html.*
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -21,19 +22,18 @@ import java.time.Duration
 import java.time.ZonedDateTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 fun main() {
     val stove = stoveController()
     val display = stove.devices.filterIsInstance<StringDisplay>().firstOrNull()
     val server = startWebServer(stove)
 
-    Runtime.getRuntime().addShutdownHook(Thread() {
-        if(!context.isShutdown) {
-            runBlocking { stove.userCommunication.goodbye() }
-        }
+    pi.addBeforeShutdown {
+        runBlocking { stove.userCommunication.goodbye() }
         server.stop(0, 100)
-        context.shutdown()
-    })
+    }
 
     runBlocking {
         stove.userCommunication.welcome()
@@ -53,13 +53,12 @@ fun main() {
         }
         launch {
             while (true) {
-                delay(15.0.minutes)
-                val now = ZonedDateTime.now()
-                File("./data/history/${now.year}.json").apply {
-                    parentFile.mkdirs()
-                    createNewFile()
+                if(stove.valve.state == null || stove.valve.state == ValveState.closed) {
+                    delay(15.0.minutes)
+                } else {
+                    delay(5.0.minutes)
                 }
-                    .appendText(format.encodeToString(StoveControllerHistoryPoint(Clock.System.now(), stove)))
+                storeSampleForHistory(stove)
             }
         }
     }
@@ -87,6 +86,9 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         script(src = "/static/pistove.js") {}
                     }
                     body {
+                        style= "min-height: 95vh;" +
+                                "display: flex;" +
+                                "flex-direction: column;"
                         div {
                             id = "status"
                         }
@@ -106,6 +108,11 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         }
                         div {
                             id = "config"
+                        }
+                        div {
+                            id = "history"
+                            style ="width: 100%;" +
+                                    "flex-grow: 1;"
                         }
                     }
                 }
@@ -156,6 +163,14 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                     }
                 }
             }*/
+            get("/history/{year}") {
+                call.respondText(contentType = ContentType.Application.Json) {
+                    "[" + (call.parameters["year"]?.toIntOrNull()
+                        ?.let {
+                            File("/stove/data/history/${it}.json").readLines().joinToString(",")
+                        } ?: "") + "]"
+                }
+            }
             static("/static") {
                 resources()
             }
@@ -163,3 +178,23 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
     }.start(wait = false)
 }
 
+
+// TODO move to JVM history
+fun storeSampleForHistory(stove: StoveController) {
+    val now = ZonedDateTime.now()
+    File("/stove/data/history/${now.year}.json").apply {
+        parentFile.mkdirs()
+        createNewFile()
+    }
+        .appendText(
+            StoveControllerHistoryPoint(
+                Clock.System.now(),
+                stove.identifieables.filterIsInstance<Sampleable>().map { it.id to it.sample(5.toDuration(DurationUnit.MINUTES)) }.toMap()).toJsonOneLineString() + "\n"
+            //format.encodeToString(StoveControllerHistoryPoint(Clock.System.now(), stove))
+        )
+}
+
+fun samplesFromYear(year: Int): List<StoveControllerHistoryPoint> {
+    return File("/stove/data/history/${year}.json").readLines()
+        .map { historyFormat.decodeFromString<StoveControllerHistoryPoint>(it) }
+}

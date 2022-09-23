@@ -17,6 +17,7 @@ val module = SerializersModule {
         subclass(MAX31855TemperaturSensor::class)
         subclass(SHT31TemperaturSensor::class)
         subclass(DS18B20TempartureSensor::class)
+        subclass(EmptyTemperatureSensor::class)
     }
     polymorphic(Display::class) {
         subclass(Display1602LCDI2C::class)
@@ -38,7 +39,7 @@ val format = Json {
     prettyPrint = true
 }
 
-
+val historyFormat = Json { prettyPrint = false }
 
 
 fun <T> encodeToJsonElement(serializersModule: SerializersModule, serializer: SerializationStrategy<T>, value: T): JsonElement {

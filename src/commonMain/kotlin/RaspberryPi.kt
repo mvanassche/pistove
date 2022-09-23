@@ -16,6 +16,8 @@ interface RaspberryPi {
     suspend fun availableOneWireDevices(): Set<OneWireDevice>
     fun oneWireDevice(id: OneWireDeviceId): OneWireDevice?
 
+    fun addBeforeShutdown(handler: (RaspberryPi) -> Unit)
+
 }
 
 interface GPIOProtocol
@@ -127,4 +129,6 @@ object DummyPi : RaspberryPi {
             }
         }
     }
+
+    override fun addBeforeShutdown(handler: (RaspberryPi) -> Unit) {}
 }

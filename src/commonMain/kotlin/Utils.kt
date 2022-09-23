@@ -148,15 +148,19 @@ fun padStringElementsToFit(maxSize: Int, elements: List<String>): String {
     } else {
         val stringsPadded = elements.toMutableList()
         val averageLength = (maxSize - elements.last().length).toDouble() / (elements.size - 1).toDouble()
+        //val averageLength = maxSize.toDouble() / elements.size.toDouble()
         var spacesToAdd = maxSize - elements.sumOf { it.length }
+        val averageSpacesToDistribute = spacesToAdd.toDouble() / elements.size.toDouble()
+        spacesToAdd -= averageSpacesToDistribute.toInt()
         (0..elements.lastIndex - 1).forEach {
             val endIndex = stringsPadded.take(it + 1).sumOf { it.length }
-            val difference = min(max(0, ((averageLength * (it + 1)) - endIndex).roundToInt()), spacesToAdd)
+            val difference = max(0, min(((averageLength * (it + 1)) - endIndex).roundToInt(), spacesToAdd))
             spacesToAdd -= difference
             stringsPadded[it] = stringsPadded[it] + " ".repeat(difference)
         }
+        spacesToAdd = maxSize - stringsPadded.sumOf { it.length }
         if(spacesToAdd > 0) {
-            stringsPadded[stringsPadded.lastIndex] = stringsPadded[stringsPadded.lastIndex] + " ".repeat(spacesToAdd)
+            stringsPadded[stringsPadded.lastIndex] = " ".repeat(spacesToAdd) + stringsPadded[stringsPadded.lastIndex]
         }
         line = stringsPadded.joinToString("")
     }

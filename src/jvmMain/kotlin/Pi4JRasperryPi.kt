@@ -1,5 +1,6 @@
 @file:UseSerializers(DurationSerializer::class)
 import com.pi4j.Pi4J
+import com.pi4j.event.ShutdownListener
 import com.pi4j.io.gpio.digital.DigitalInput
 import com.pi4j.io.gpio.digital.DigitalOutput
 import com.pi4j.io.gpio.digital.DigitalOutputProvider
@@ -115,6 +116,7 @@ class Pi4JRasperryPi : RaspberryPi {
         }
     }
 
+    @Synchronized
     override fun spi(channel: Int): GPIOSPI {
         val config = Spi.newConfigBuilder(context)
             .address(channel)
@@ -155,6 +157,10 @@ class Pi4JRasperryPi : RaspberryPi {
             }
 
         }
+    }
+
+    override fun addBeforeShutdown(handler: (RaspberryPi) -> Unit) {
+        context.addListener(ShutdownListener { handler(this) })
     }
 }
 

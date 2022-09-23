@@ -2,14 +2,19 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlin.time.Duration
 
 enum class ValveState { open, opening, closing, closed }
 
 @Serializable
-class ElectricValveController(override val id: String, val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay) : State<ValveState?>, Controller {
+class ElectricValveController(override val id: String, val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay)
+    : State<ValveState?>, Controller, Sampleable {
 
     @Transient
-    val timeout = 160.seconds // TODO persistent parameter.
+    val timeForFullMotion = 150.seconds // TODO persistent parameter.
+
+    @Transient
+    val extraTimeForSafety = 10.seconds
 
     /*val pstate: PersistentState<ValveState?> = PersistentState(null)
     override var state: ValveState?
@@ -23,7 +28,7 @@ class ElectricValveController(override val id: String, val powerRelay: ElectricR
         state = ValveState.opening
         openCloseRelay.state = RelayState.inactive
         powerRelay.state = RelayState.activated
-        delay(timeout)
+        delay(timeForFullMotion + extraTimeForSafety)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.opening) {
                 state = ValveState.open
@@ -39,7 +44,7 @@ class ElectricValveController(override val id: String, val powerRelay: ElectricR
         state = ValveState.closing
         openCloseRelay.state = RelayState.activated
         powerRelay.state = RelayState.activated
-        delay(timeout)
+        delay(timeForFullMotion + extraTimeForSafety)
         //synchronized(this) { // TODO synchronized
             if(state == ValveState.closing) {
                 state = ValveState.closed
@@ -62,6 +67,10 @@ class ElectricValveController(override val id: String, val powerRelay: ElectricR
 
     suspend fun stateMessage(): String {
         return state?.toString() ?: "?"
+    }
+
+    override fun sample(validityPeriod: Duration): Map<String, SampleValue> {
+        return state?.let { mapOf("state" to SampleStringValue(it.name)) } ?: emptyMap()
     }
 
 }

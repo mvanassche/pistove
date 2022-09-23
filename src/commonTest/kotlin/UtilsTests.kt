@@ -8,6 +8,7 @@ class UtilsTests {
         println(padStringElementsToFit(16, listOf("12°", "19°", "851°", "185°")))
         println(padStringElementsToFit(16, listOf("12°", "19°", "51°", "?°")))
         println(padStringElementsToFit(16, listOf("19°", "51°", "??°")))
+        println(padStringElementsToFit(16, listOf("19°", "closing", "??%")))
     }
 
     @Test

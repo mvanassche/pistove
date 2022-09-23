@@ -72,6 +72,7 @@ kotlin {
         }
         jsMain {
             dependencies {
+                implementation npm("dygraphs", "2.1.0")
             }
         }
         jsTest {

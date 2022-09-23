@@ -37,6 +37,15 @@ fun main() {
             }
         }
 
+        val historyDiv = document.getElementById("history")
+        if(historyDiv != null) {
+            window.fetch("/history/2022").then {
+                it.text().then {
+                    showHistoryIn(historyDiv, historyFormat.decodeFromString(it))
+                }
+            }
+        }
+
         Unit
     }
 }
