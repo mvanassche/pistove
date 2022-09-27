@@ -18,8 +18,11 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.nio.file.Path
 import java.time.Duration
 import java.time.ZonedDateTime
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
@@ -75,6 +78,8 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
             //timeout = Duration.ofSeconds(15)
             pingPeriod = Duration.ofSeconds(30)
         }
+        install(ContentNegotiation) {
+        }
 
         routing {
             get("/") {
@@ -93,21 +98,10 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                             id = "status"
                         }
                         div {
-                            button {
-                                onClick = "fetch('/open')"
-                                +"open"
-                            }
-                            button {
-                                onClick = "fetch('/close')"
-                                +"close"
-                            }
-                            button {
-                                onClick = "fetch('/auto')"
-                                +"auto"
-                            }
+                            id = "config"
                         }
                         div {
-                            id = "config"
+                            id = "history-periods"
                         }
                         div {
                             id = "history"
@@ -117,32 +111,9 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                     }
                 }
             }
-            get("/open") {
-                stove.open()
-                call.respondText("open")
-            }
-            get("/close") {
-                stove.close()
-                call.respondText("closed")
-            }
-            get("/auto") {
-                launch { stove.auto() }
-                call.respondText("auto engaged")
-            }
             get("/shutdown") {
                 System.exit(0)
             }
-            /*webSocket("/ws/stove") {
-                while(true) {
-                    try {
-                        // TODO isn't there a direct way to send value serialized instead of using Frame.Text?
-                        outgoing.trySend(Frame.Text(Json.encodeToString(stove.toStove())))
-                        delay(3.seconds)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            }*/
             webSocket("/ws/stove-controller") {
                 while(true) {
                     try {
@@ -153,16 +124,11 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                     }
                 }
             }
-            /*webSocket("/ws/display") {
-                while(true) {
-                    try {
-                        outgoing.trySend(Frame.Text(stove.stateMessage()))
-                        delay(3.seconds)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+            get("/history") {
+                call.respondText(contentType = ContentType.Application.Json) {
+                    format.encodeToString(historyPeriods())
                 }
-            }*/
+            }
             get("/history/{year}") {
                 call.respondText(contentType = ContentType.Application.Json) {
                     "[" + (call.parameters["year"]?.toIntOrNull()
@@ -178,6 +144,10 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
     }.start(wait = false)
 }
 
+
+fun historyPeriods(): List<String> {
+    return Path.of("/stove/data/history").listDirectoryEntries().map { it.fileName.name.removeSuffix(".json") }
+}
 
 // TODO move to JVM history
 fun storeSampleForHistory(stove: StoveController) {

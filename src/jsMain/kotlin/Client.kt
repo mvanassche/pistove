@@ -3,6 +3,7 @@ import kotlinx.browser.window
 import kotlinx.dom.clear
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.MessageEvent
 import org.w3c.dom.WebSocket
 
@@ -38,10 +39,30 @@ fun main() {
         }
 
         val historyDiv = document.getElementById("history")
+
         if(historyDiv != null) {
-            window.fetch("/history/2022").then {
+            val select = document.createElement("select")
+            select.append(document.createElement("option"))
+            document.getElementById("history-periods")?.append(select)
+            select.addEventListener("change", {
+                println(select.asDynamic().value)
+                window.fetch("/history/${select.asDynamic().value}").then {
+                    it.text().then {
+                        showHistoryIn(historyDiv, historyFormat.decodeFromString(it))
+                    }
+                }
+            })
+
+            window.fetch("/history").then {
                 it.text().then {
-                    showHistoryIn(historyDiv, historyFormat.decodeFromString(it))
+                    format.decodeFromString<List<String>>(it).forEach { period ->
+                        select.append(
+                            document.createElement("option").also {
+                                it.textContent = period
+                                it.setAttribute("value", period)
+                            }
+                        )
+                    }
                 }
             }
         }

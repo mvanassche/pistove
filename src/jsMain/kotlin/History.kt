@@ -3,8 +3,7 @@ import org.w3c.dom.Element
 
 
 fun showHistoryIn(element: Element, history: Array<StoveControllerHistoryPoint>) {
-    // FIXME taking random for knowing values really isn't great!
-    val keys = history.random().samples.flatMap { device -> device.value.map { Pair(device.key, it.key) } }
+    val keys = history.keys()
     //val keys = listOf(Pair("stove-thermometer", "temperature"))
     val labels = listOf("time") + keys.map { it.first + "." + it.second }
     val data = history.map { historyPoint ->
@@ -16,6 +15,14 @@ fun showHistoryIn(element: Element, history: Array<StoveControllerHistoryPoint>)
     //options.logscale =  js("{ x : false, y : true }")
     val d = Dygraph(element, data, options)
 }
+
+fun Array<StoveControllerHistoryPoint>.keys(): List<Pair<String, String>> {
+    // FIXME taking random for knowing values really isn't great!
+    val keysFromRandom = this.random().samples.flatMap { device -> device.value.map { Pair(device.key, it.key) } }
+    val keysFromLast = this.last().samples.flatMap { device -> device.value.map { Pair(device.key, it.key) } }
+    return (keysFromRandom.toSet() + keysFromLast.toSet()).toList()
+}
+
 
 @JsModule("dygraphs/index.es5.js")
 @JsNonModule
