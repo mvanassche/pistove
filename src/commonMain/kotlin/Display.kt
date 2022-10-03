@@ -1,9 +1,9 @@
-sealed interface Display : Actuator {
-}
+sealed interface Display : Actuator
 
 interface StringDisplay : Display {
     suspend fun display(value: String)
-    suspend fun display(linesOfElements: List<List<String>>)
+    suspend fun displayLines(lines: List<String>)
+    suspend fun displayTable(linesOfElements: List<List<String>>)
 }
 
 interface BackLightDisplay : Display {

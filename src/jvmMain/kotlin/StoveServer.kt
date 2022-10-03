@@ -45,7 +45,7 @@ fun main() {
             launch {
                 while (true) {
                     delay(5000)
-                    display.display(stove.stateDisplayString())
+                    display.displayTable(stove.stateDisplayString())
                     /*if(valve.state != ValveState.closed && !display.illuminatedBackLight) {
                     display.illuminatedBackLight = true
                 } else if(display.illuminatedBackLight) {
@@ -56,7 +56,7 @@ fun main() {
         }
         launch {
             while (true) {
-                if(stove.valve.state == null || stove.valve.state == ValveState.closed) {
+                if(stove.valve.isClosed() != false) {
                     delay(15.0.minutes)
                 } else {
                     delay(5.0.minutes)

@@ -27,15 +27,27 @@ sealed class BaseTemperatureSensor: BaseSamplingValuesSensor<Double>(0.0), Tempe
 @Serializable
 sealed class PushButton : Sensor {
     @Transient
-    val listeners = mutableListOf<() -> Unit>()
+    val clickListeners = mutableListOf<() -> Unit>()
+    @Transient
+    val longClickListeners = mutableListOf<() -> Unit>()
+
     fun addOnClickListener(listener: () -> Unit) {
-        listeners.add(listener)
+        clickListeners.add(listener)
     }
     fun removeOnClickListener(listener: () -> Unit) {
-        listeners.remove(listener)
+        clickListeners.remove(listener)
+    }
+    fun addOnLongClickListener(listener: () -> Unit) {
+        longClickListeners.add(listener)
+    }
+    fun removeOnLongClickListener(listener: () -> Unit) {
+        longClickListeners.remove(listener)
     }
     protected fun pushed() {
-        listeners.forEach { it() }
+        clickListeners.forEach { it() }
+    }
+    protected fun longPushed() {
+        longClickListeners.forEach { it() }
     }
 }
 

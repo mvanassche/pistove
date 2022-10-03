@@ -31,6 +31,13 @@ interface State<V> {
     val state: V
 }
 
+interface WatcheableState {
+    val listeners: MutableList<() -> Unit>
+    fun addOnStateChange(listener: () -> Unit) {
+        listeners.add(listener)
+    }
+}
+
 @Serializable
 open class PersistentState<V>(override var state: V) : State<V>
 
@@ -132,7 +139,7 @@ object DurationSerializer : KSerializer<Duration> {
     }
 
     override val descriptor: SerialDescriptor
-        get() = PrimitiveSerialDescriptor("Duration", PrimitiveKind.LONG)
+        get() = PrimitiveSerialDescriptor("CustomDuration", PrimitiveKind.LONG)
 
 
     override fun serialize(encoder: Encoder, value: Duration) {

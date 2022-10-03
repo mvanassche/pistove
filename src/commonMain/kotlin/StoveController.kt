@@ -49,9 +49,14 @@ class StoveController(
             launch { openButton.startSensing() }
             launch { closeButton.startSensing() }
             launch { autoButton.startSensing() }
-            openButton.addOnClickListener { this.launch { open() } }
-            closeButton.addOnClickListener { this.launch { close() } }
+            openButton.addOnClickListener { this.launch { openSome() } }
+            closeButton.addOnClickListener { this.launch { closeSome() } }
+            openButton.addOnLongClickListener { this.launch { open() } }
+            closeButton.addOnLongClickListener { this.launch { close() } }
             autoButton.addOnClickListener { this.launch { auto() } }
+            identifieables.filterIsInstance<WatcheableState>().forEach {
+                it.addOnStateChange { launch { refreshDisplay() } }
+            }
             awaitCancellation()
         }
         return true
@@ -73,6 +78,18 @@ class StoveController(
             userCommunication.acknowledge()
         }
     }
+    suspend fun openSome() {
+        userCommunication.acknowledge()
+        if(valve.openMore()) {
+            userCommunication.acknowledge()
+        }
+    }
+    suspend fun closeSome() {
+        userCommunication.acknowledge()
+        if(valve.closeMore()) {
+            userCommunication.acknowledge()
+        }
+    }
 
     suspend fun close() {
         userCommunication.acknowledge()
@@ -90,19 +107,14 @@ class StoveController(
         }
     }
 
+    suspend fun refreshDisplay() {
+        (userCommunication as? StringDisplay)?.displayTable(stateDisplayString())
+    }
+
     suspend fun stateDisplayString(): List<List<String>> {
         return listOf(listOf(room.stateMessage(), fumes.stateMessage(), accumulator.stateMessage()), listOf(outside.stateMessage(), valve.stateMessage(), "??%"))
     }
 
-    // TODO generalize this? be creative here maybe these business objects should be part of the state of the controller, being updated permanently??
-    // TODO Also, put these validity periods in one place, please!
-    suspend fun toStove(): Stove {
-        return Stove(
-            fumes.maybeCurrentValue(30.toDuration(DurationUnit.SECONDS)),
-            Room(room.maybeCurrentValue(30.toDuration(DurationUnit.SECONDS))),
-            Valve(valve.state)
-        )
-    }
 }
 
 @Serializable
@@ -114,16 +126,13 @@ sealed class AutoModeController : Controller {
 @Serializable
 class CloseWhenCold(override val id: String, override val valve: ElectricValveController, override val fumes: TemperatureSensor) : AutoModeController() {
     override suspend fun startControlling(): Boolean {
-        when(valve.state) {
-            ValveState.open -> {
-                if(fumes.currentValue(10.toDuration(DurationUnit.SECONDS)) > 250.0) {// TODO parametric
-                    fumes.waitForCurrentValueCondition(10.toDuration(DurationUnit.SECONDS)) { it < 120.0 } // TODO parametric
-                    return valve.close()
-                } else {
-                    // TODO state change? nothing done, this is a dumb controller, please launch it again when stove is hot.
-                }
+        if(valve.isClosed() == false) {
+            if(fumes.currentValue(10.toDuration(DurationUnit.SECONDS)) > 200.0) {// TODO parametric
+                fumes.waitForCurrentValueCondition(10.toDuration(DurationUnit.SECONDS)) { it < 120.0 } // TODO parametric
+                return valve.close()
+            } else {
+                // TODO state change? nothing done, this is a dumb controller, please launch it again when stove is hot.
             }
-            else -> { } // TODO state change? nothing done, this is a dumb controller, please launch it again when stove open and hot.
         }
         return false
     }

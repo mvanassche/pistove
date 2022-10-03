@@ -1,4 +1,5 @@
 import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.math.roundToInt
@@ -55,6 +56,11 @@ class EmptyTemperatureSensor(override val id: String) : BaseTemperatureSensor() 
 @Serializable
 class TestRelay(override val id: String) : ElectricRelay {
     override var state: RelayState = RelayState.inactive
+        set(value) {
+            println("Relay $id -> $value  (${Clock.System.now()})")
+            field = value
+        }
+    get() = field
 }
 
 
@@ -66,6 +72,11 @@ class TestButton(override val id: String) : PushButton() {
         println("$id pushed")
     }
 
+    suspend fun longPush() {
+        println("$id long push")
+        longPushed()
+        println("$id long pushed")
+    }
     override suspend fun startSensing() {
     }
 }
