@@ -12,8 +12,11 @@ import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 
+val module = SerializersModule {
+}
 
 val format = Json {
+    //serializersModule = module
     encodeDefaults = true
     prettyPrint = true
 }

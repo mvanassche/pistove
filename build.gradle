@@ -103,6 +103,7 @@ shadowJar {
 }
 
 task deployOnPi {
+    dependsOn(clean) // this may be stupid, but kotlin serialization compiler plugin has an issue, on the second build without clean, it complains about serizalizers not found.
     dependsOn(shadowJar)
     doLast {
         exec {
