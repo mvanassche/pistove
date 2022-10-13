@@ -1,8 +1,6 @@
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.last
-import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
@@ -43,37 +41,43 @@ open class PersistentState<V>(override var state: V) : State<V>
 
 
 fun <V> State<InstantValue<V>>.maybeCurrentValue(validityPeriod: Duration): V? {
-    if(state.time >= Clock.System.now() - validityPeriod) {
-        return state.value
+    return state.maybeCurrentValue(validityPeriod)
+}
+
+fun <V> InstantValue<V>.maybeCurrentValue(validityPeriod: Duration): V? {
+    if(time >= Clock.System.now() - validityPeriod) {
+        return value
     } else {
         return null
     }
 }
 
-sealed interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<InstantValue<V>>, SensorWithState<V> {
+sealed interface SamplingValuesSensor<V>: Sensor, StateFlow<InstantValue<V>>, State<InstantValue<V>>, SensorWithState<V>
 
-    fun currentValueOrNull(validityPeriod: Duration): V? {
-        if(value.time >= Clock.System.now() - validityPeriod) {
-            return value.value
-        } else {
-            return null
-        }
+
+fun <V> StateFlow<InstantValue<V>>.currentValueOrNull(validityPeriod: Duration): V? {
+    if(value.time >= Clock.System.now() - validityPeriod) {
+        return value.value
+    } else {
+        return null
     }
-
-    suspend fun currentValue(validityPeriod: Duration): V {
-        if(value.time >= Clock.System.now() - validityPeriod) {
-            return value.value
-        } else {
-            takeWhile { it.time < Clock.System.now() - validityPeriod }.last()
-            return value.value
-        }
-    }
-
-    suspend fun waitForCurrentValueCondition(validityPeriod: Duration, condition: (V) -> Boolean) {
-        takeWhile { it.time < Clock.System.now() - validityPeriod || !condition(it.value) }.last()
-    }
-
 }
+
+suspend fun <V> StateFlow<InstantValue<V>>.currentValue(validityPeriod: Duration): V {
+    if(value.time >= Clock.System.now() - validityPeriod) {
+        return value.value
+    } else {
+        //println("WAITING FOR CURRENT VALUE $id ${coroutineScope {  }}")
+        takeWhile { it.time < Clock.System.now() - validityPeriod }.last()
+        //println("GOTTEN FOR CURRENT VALUE $id")
+        return value.value
+    }
+}
+
+suspend fun <V> StateFlow<InstantValue<V>>.waitForCurrentValueCondition(validityPeriod: Duration, condition: (V) -> Boolean) {
+    takeWhile { it.time < Clock.System.now() - validityPeriod || !condition(it.value) }.last()
+}
+
 
 abstract class BaseSamplingValuesSensor<V>(
     val initialValue: V,
@@ -183,3 +187,67 @@ fun Double.toString(precision: Int): String {
         return digits.dropLast(precision) + "." + digits.takeLast(precision)
     }
 }
+
+
+fun <T> Flow<T>.windowed(shouldBeInWindow: (T) -> Boolean): Flow<List<T>> = flow {
+    val queue = ArrayDeque<T>()
+    collect { element ->
+        queue.addLast(element)
+        while(queue.firstOrNull()?.let { !shouldBeInWindow(it) } == true) { queue.removeFirst() }
+        if(queue.isNotEmpty()) {
+            emit(queue.toList())
+        }
+    }
+}
+
+fun <T> Flow<InstantValue<T>>.windowed(timeWindow: Duration): Flow<List<InstantValue<T>>> = windowed {
+    Clock.System.now() - it.time < timeWindow
+}
+
+fun <T> Flow<T>.zipWithNext(): Flow<Pair<T, T>> = flow {
+    var previous: T? = null
+    collect {
+        if(previous == null) {
+            previous = it
+        } else {
+            emit(Pair(previous!!, it))
+            previous = it
+        }
+    }
+}
+
+fun <T> Flow<InstantValue<T>>.sampleInstantValue(period: Duration): Flow<InstantValue<T>> = flow {
+    var lastEmittedAt: Instant? = null
+    collect {
+        if(lastEmittedAt == null || (it.time - lastEmittedAt) >= period) {
+            emit(it)
+        }
+    }
+}
+
+fun <T> Flow<List<InstantValue<T>>>.aggregate(aggregation: (List<T>) -> T): Flow<InstantValue<T>> = map {
+    if(it.isNotEmpty()) {
+        InstantValue(aggregation(it.map { it.value }), it.last().time)
+    } else {
+        null
+    }
+}.filterNotNull()
+
+
+
+
+/*fun <V> ReceiveChannel<InstantValue<V>>.zipWithNext(): ReceiveChannel<InstantValue<V>> {
+    var previous: V? = null
+    return produce {
+
+    }
+    this.
+    collect {
+        if(previous == null) {
+            previous = it
+        } else {
+            emit(Pair(previous!!, it))
+            previous = it
+        }
+    }
+}*/

@@ -13,7 +13,7 @@ sealed interface BasicUserCommunication {
 }
 
 @Serializable
-class DisplayAndBuzzerUserCommunication(val display: StringDisplay, val buzzer: Buzzer) : BasicUserCommunication, StringDisplay by display {
+class DisplayAndBuzzerUserCommunication(override val id: String, val display: StringDisplay, val buzzer: Buzzer) : BasicUserCommunication, StringDisplay by display {
     override suspend fun welcome() {
         (display as? BackLightDisplay)?.backLight(true)
         buzzer.dodadi()

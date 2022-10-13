@@ -10,6 +10,7 @@ fun stoveController(): StoveController {
     val powerRelay = LowActiveGPIOElectricRelay("power-relay", 5)
     val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 6)
     val valve = ElectricValveController("air-intake-valve", powerRelay = powerRelay, openCloseRelay = openCloseRelay)
+    //val fumes = TestTemperatureSensor("stove-thermometer").also { it.usefulPrecision = 0 }
     val fumes = MAX31855TemperaturSensor("stove-thermometer", 0).also { it.usefulPrecision = 0 }
     //val accumulator = EmptyTemperatureSensor("accumulator-thermometer")
     val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 1).also { it.usefulPrecision = 0 }
@@ -20,7 +21,8 @@ fun stoveController(): StoveController {
     val closeButton = PushButtonGPIO("close-button", 26)
     val autoButton = PushButtonGPIO("auto-button", 19)
     val display = Display1602LCDI2C("display", 1, 0x27)
-    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, openButton, closeButton, autoButton, DisplayAndBuzzerUserCommunication(display, buzzer))
+    val comm = DisplayAndBuzzerUserCommunication("user-communication", display, buzzer)
+    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, openButton, closeButton, autoButton, comm)
 }
 
 @Serializable
@@ -35,7 +37,7 @@ class StoveController(
     val closeButton: PushButton,
     val autoButton: PushButton,
     val userCommunication: BasicUserCommunication,
-    val autoModeController: AutoModeController = CloseWhenCold("auto-close-when-cold", valve, fumes)
+    val autoModeController: AutoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes)//CloseWhenCold("auto-close-when-cold", valve, fumes)
 ) : Controller {
 
     override suspend fun startControlling(): Boolean {
@@ -112,34 +114,11 @@ class StoveController(
     }
 
     suspend fun stateDisplayString(): List<List<String>> {
-        return listOf(listOf(room.stateMessage(), fumes.stateMessage(), accumulator.stateMessage()), listOf(outside.stateMessage(), valve.stateMessage(), "??%"))
+        return listOf(listOf(room.stateMessage(), fumes.stateMessage(), accumulator.stateMessage()), listOf(/*outside.stateMessage(), */valve.stateMessage(), autoModeController.stateMessage())
+        )
     }
 
 }
 
-@Serializable
-sealed class AutoModeController : Controller {
-    abstract val valve: ElectricValveController
-    abstract val fumes: TemperatureSensor
-}
-
-@Serializable
-class CloseWhenCold(override val id: String, override val valve: ElectricValveController, override val fumes: TemperatureSensor) : AutoModeController() {
-    override suspend fun startControlling(): Boolean {
-        if(valve.isClosed() == false) {
-            if(fumes.currentValue(10.toDuration(DurationUnit.SECONDS)) > 200.0) {// TODO parametric
-                fumes.waitForCurrentValueCondition(10.toDuration(DurationUnit.SECONDS)) { it < 120.0 } // TODO parametric
-                return valve.close()
-            } else {
-                // TODO state change? nothing done, this is a dumb controller, please launch it again when stove is hot.
-            }
-        }
-        return false
-    }
-
-    override val devices: Set<Device>
-        get() = setOf(fumes) + valve.devices
-
-}
 
 

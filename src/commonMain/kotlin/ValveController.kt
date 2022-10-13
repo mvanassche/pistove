@@ -66,9 +66,38 @@ class NotMovingValveState(override val openRate: Double) : KnownValveState {
     }
 }
 
+interface ValveController : State<ValveState?>, Controller, Sampleable {
+    val openRateOrTarget: Double? // TODO rename
+
+    suspend fun setOpenRateTo(targetOpenRate0: Double): Boolean
+
+    suspend fun open(): Boolean {
+        return setOpenRateTo(1.0)
+    }
+
+    suspend fun openMore(): Boolean {
+        return setOpenRateTo((openRateOrTarget ?: 0.0) + 0.1)
+    }
+
+    suspend fun close(): Boolean {
+        return setOpenRateTo(0.0)
+    }
+
+    suspend fun closeMore(): Boolean {
+        return setOpenRateTo((openRateOrTarget ?: 1.0) - 0.1)
+    }
+
+    override fun sample(validityPeriod: Duration): Map<String, SampleValue> {
+        return state?.let {
+            mapOf("state" to SampleStringValue(it.toString())) +
+                    ((it as? KnownValveState)?.let { mapOf("open-rate" to SampleDoubleValue(it.openRate)) } ?: emptyMap())
+        } ?: emptyMap()
+    }
+}
+
 @Serializable
 open class ElectricValveController(override val id: String, val powerRelay: ElectricRelay, val openCloseRelay: ElectricRelay)
-    : State<ValveState?>, WatcheableState, Controller, Sampleable {
+    : ValveController, WatcheableState {
 
     open val timeForFullMotion = 150.seconds
 
@@ -91,7 +120,7 @@ open class ElectricValveController(override val id: String, val powerRelay: Elec
     override val listeners = mutableListOf<() -> Unit>()
 
     val openRate: Double? get() = (state as? KnownValveState)?.openRate
-    val openRateOrTarget: Double? get() = (state as? MovingValveState)?.targetOpenRate ?: openRate
+    override val openRateOrTarget: Double? get() = (state as? MovingValveState)?.targetOpenRate ?: openRate
 
 
     @Transient
@@ -114,7 +143,7 @@ open class ElectricValveController(override val id: String, val powerRelay: Elec
 
 
 
-    suspend fun setOpenRateTo(targetOpenRate0: Double): Boolean {
+    override suspend fun setOpenRateTo(targetOpenRate0: Double): Boolean {
         // if not moving, just go for it, wait, then recheck the target?
         // if the state is reset -> just change the rate, wait, check if the target still holds, if it does stop
         // if moving, change target (and direction) wait, check if the target still holds, if it does stop
@@ -183,21 +212,6 @@ open class ElectricValveController(override val id: String, val powerRelay: Elec
         kotlinx.coroutines.delay(time)
     }
 
-    suspend fun open(): Boolean {
-        return setOpenRateTo(1.0)
-    }
-
-    suspend fun openMore(): Boolean {
-        return setOpenRateTo((openRateOrTarget ?: 0.0) + 0.1)
-    }
-
-    suspend fun close(): Boolean {
-        return setOpenRateTo(0.0)
-    }
-
-    suspend fun closeMore(): Boolean {
-        return setOpenRateTo((openRateOrTarget ?: 1.0) - 0.1)
-    }
 
     override suspend fun startControlling(): Boolean {
         // TODO start() check the state, and activate/deactivate depending on it for consistency with physical state: if closing, call close, if opening, call open
@@ -211,11 +225,5 @@ open class ElectricValveController(override val id: String, val powerRelay: Elec
         return state?.toString() ?: "?"
     }
 
-    override fun sample(validityPeriod: Duration): Map<String, SampleValue> {
-        return state?.let {
-            mapOf("state" to SampleStringValue(it.toString())) +
-                    ((it as? KnownValveState)?.let { mapOf("open-rate" to SampleDoubleValue(it.openRate)) } ?: emptyMap())
-        } ?: emptyMap()
-    }
 
 }

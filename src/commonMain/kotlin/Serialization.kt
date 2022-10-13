@@ -18,8 +18,12 @@ val module = SerializersModule {
         subclass(SHT31TemperaturSensor::class)
         subclass(DS18B20TempartureSensor::class)
         subclass(EmptyTemperatureSensor::class)
+        subclass(TestTemperatureSensor::class)
     }
     polymorphic(Display::class) {
+        subclass(Display1602LCDI2C::class)
+    }
+    polymorphic(StringDisplay::class) {
         subclass(Display1602LCDI2C::class)
     }
     polymorphic(PushButton::class) {
@@ -151,7 +155,8 @@ abstract class JSONGraphCompositeEncoder(override val serializersModule: Seriali
                 jsonObjectMap[descriptor.getElementName(index)] = JsonObject(mapOf("@id" to JsonPrimitive(value.id)))
             } else {
                 if(value is Identifiable) {
-                    identifiedAlreadyProcessed.add(value.id)
+                    val id = value.id
+                    identifiedAlreadyProcessed.add(id)
                 }
                 val encoder = JSONGraphEncoder(serializersModule, identifiedAlreadyProcessed)
                 serializer.serialize(encoder, value)

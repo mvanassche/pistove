@@ -16,7 +16,6 @@ import kotlinx.datetime.Clock
 import kotlinx.html.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.nio.file.Path
 import java.time.Duration
@@ -59,7 +58,7 @@ fun main() {
                 if(stove.valve.isClosed() != false) {
                     delay(15.0.minutes)
                 } else {
-                    delay(5.0.minutes)
+                    delay(2.0.minutes)
                 }
                 storeSampleForHistory(stove)
             }
@@ -95,6 +94,12 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                                 "display: flex;" +
                                 "flex-direction: column;"
                         div {
+                            button {
+                                onClick = "var r = window.prompt('open rate', '0.5'); fetch('/rate/' + r);"
+                                +"set valve open rate"
+                            }
+                        }
+                        div {
                             id = "status"
                         }
                         div {
@@ -102,6 +107,9 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         }
                         div {
                             id = "history-periods"
+                        }
+                        div {
+                            id = "history-data-selection"
                         }
                         div {
                             id = "history"

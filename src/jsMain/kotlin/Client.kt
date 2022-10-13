@@ -39,8 +39,10 @@ fun main() {
         }
 
         val historyDiv = document.getElementById("history")
+        val historyDataSelectionDiv = document.getElementById("history-data-selection")
 
-        if(historyDiv != null) {
+
+        if(historyDiv != null && historyDataSelectionDiv != null) {
             val select = document.createElement("select")
             select.append(document.createElement("option"))
             document.getElementById("history-periods")?.append(select)
@@ -48,7 +50,7 @@ fun main() {
                 println(select.asDynamic().value)
                 window.fetch("/history/${select.asDynamic().value}").then {
                     it.text().then {
-                        showHistoryIn(historyDiv, historyFormat.decodeFromString(it))
+                        showHistoryIn(historyDiv, historyDataSelectionDiv, historyFormat.decodeFromString(it))
                     }
                 }
             })
