@@ -137,9 +137,9 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                     format.encodeToString(historyPeriods())
                 }
             }
-            get("/history/{year}") {
+            get("/history/{period}") {
                 call.respondText(contentType = ContentType.Application.Json) {
-                    "[" + (call.parameters["year"]?.toIntOrNull()
+                    "[" + (call.parameters["period"]
                         ?.let {
                             File("/stove/data/history/${it}.json").readLines().joinToString(",")
                         } ?: "") + "]"
@@ -160,7 +160,7 @@ fun historyPeriods(): List<String> {
 // TODO move to JVM history
 fun storeSampleForHistory(stove: StoveController) {
     val now = ZonedDateTime.now()
-    File("/stove/data/history/${now.year}.json").apply {
+    File("/stove/data/history/${now.year}-${now.month.value}.json").apply {
         parentFile.mkdirs()
         createNewFile()
     }
@@ -172,7 +172,3 @@ fun storeSampleForHistory(stove: StoveController) {
         )
 }
 
-fun samplesFromYear(year: Int): List<StoveControllerHistoryPoint> {
-    return File("/stove/data/history/${year}.json").readLines()
-        .map { historyFormat.decodeFromString<StoveControllerHistoryPoint>(it) }
-}

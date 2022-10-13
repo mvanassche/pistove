@@ -4,7 +4,7 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-
+@Serializable
 sealed interface TemperatureSensor : SamplingValuesSensor<Double> {
 
     val usefulPrecision: Int
@@ -15,6 +15,7 @@ sealed interface TemperatureSensor : SamplingValuesSensor<Double> {
     }
 }
 
+//@Serializable
 sealed class BaseTemperatureSensor: BaseSamplingValuesSensor<Double>(0.0), TemperatureSensor, Sampleable {
     override var usefulPrecision: Int = 0
 

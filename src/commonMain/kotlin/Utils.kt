@@ -1,4 +1,3 @@
-import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
@@ -79,7 +78,8 @@ suspend fun <V> StateFlow<InstantValue<V>>.waitForCurrentValueCondition(validity
 }
 
 
-abstract class BaseSamplingValuesSensor<V>(
+//@Serializable
+sealed class BaseSamplingValuesSensor<V>(
     val initialValue: V,
     val flow: MutableStateFlow<InstantValue<V>> = MutableStateFlow(InstantValue(initialValue, Instant.DISTANT_PAST))
 ): SamplingValuesSensor<V>, StateFlow<InstantValue<V>> by flow, SensorWithState<V> {

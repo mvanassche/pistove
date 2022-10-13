@@ -1,44 +1,19 @@
-import kotlinx.serialization.*
+import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementNames
-import kotlinx.serialization.encoding.*
+import kotlinx.serialization.encoding.CompositeDecoder
+import kotlinx.serialization.encoding.CompositeEncoder
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
+import kotlinx.serialization.serializer
 
-// TODO why do I still need this? the interfaces are sealed
-val module = SerializersModule {
-    polymorphic(ElectricRelay::class) {
-        subclass(LowActiveGPIOElectricRelay::class)
-    }
-    polymorphic(TemperatureSensor::class) {
-        subclass(MAX31855TemperaturSensor::class)
-        subclass(SHT31TemperaturSensor::class)
-        subclass(DS18B20TempartureSensor::class)
-        subclass(EmptyTemperatureSensor::class)
-        subclass(TestTemperatureSensor::class)
-    }
-    polymorphic(Display::class) {
-        subclass(Display1602LCDI2C::class)
-    }
-    polymorphic(StringDisplay::class) {
-        subclass(Display1602LCDI2C::class)
-    }
-    polymorphic(PushButton::class) {
-        subclass(PushButtonGPIO::class)
-    }
-    polymorphic(BasicUserCommunication::class) {
-        subclass(DisplayAndBuzzerUserCommunication::class)
-    }
-    polymorphic(Buzzer::class) {
-        subclass(PassivePiezoBuzzerHardwarePWM::class)
-    }
-}
 
 val format = Json {
-    serializersModule = module
     encodeDefaults = true
     prettyPrint = true
 }

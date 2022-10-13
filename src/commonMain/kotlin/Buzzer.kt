@@ -4,7 +4,7 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-
+@Serializable
 sealed interface Buzzer: Actuator {
 
     suspend fun beep(duration: Duration)

@@ -1,6 +1,7 @@
 import kotlinx.serialization.Serializable
 
 
+@Serializable
 sealed interface BasicUserCommunication {
 
     suspend fun welcome()
