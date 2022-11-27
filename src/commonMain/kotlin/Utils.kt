@@ -251,3 +251,17 @@ fun <T> Flow<List<InstantValue<T>>>.aggregate(aggregation: (List<T>) -> T): Flow
         }
     }
 }*/
+
+
+/**
+ * y = mx + b
+ */
+@Serializable
+class LinearFunction(val m: Double, val b: Double) {
+    constructor(p1: Pair<Double, Double>, p2: Pair<Double, Double>) :
+            this((p2.second - p1.second) / (p2.first - p1.first), p1.second - ((p2.second - p1.second) / (p2.first - p1.first) * p1.first))
+
+    fun y(x: Double): Double {
+        return m * x + b
+    }
+}

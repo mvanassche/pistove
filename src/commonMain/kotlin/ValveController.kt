@@ -105,6 +105,8 @@ open class ElectricValveController(override val id: String, val powerRelay: Elec
 
     open fun isClosed() = state?.let { (it as? NotMovingValveState)?.openRate?.let { it == 0.0 } }
 
+    open fun isMoving() = state?.let { it is MovingValveState }
+
     /*val pstate: PersistentState<ValveState?> = PersistentState(null)
     override var state: ValveState?
         get() = pstate.state

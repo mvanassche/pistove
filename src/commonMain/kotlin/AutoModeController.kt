@@ -72,6 +72,8 @@ class SlowlyCloseWhenCooling(override val id: String, override val valve: Electr
                 daFumes = dFumes.windowed(5.0.minutes).map {
                     InstantValue(it.map { it.value }.average(), it.last().time)
                 }.stateIn(this)
+
+                //daFumes.zipWithNext()
             }
         }
 
@@ -106,6 +108,9 @@ class SlowlyCloseWhenCooling(override val id: String, override val valve: Electr
     val flamelessCoolingUpperBound = -20.0 // °/h
     val rechargingLowerBound = 50.0 // °/h
 
+    @Transient
+    val temperatureBasedFunction = LinearFunction(Pair(hotLowerBound, 0.7), Pair(coldUpperBound, 0.0))
+
 
     var lastOpenRate: Double? = null
 
@@ -124,7 +129,7 @@ class SlowlyCloseWhenCooling(override val id: String, override val valve: Electr
                             dt < flameCoolingUpperBound -> max(0.0, min(0.9, max(0.2, lastOpenRate ?: 1.0))) // max 0.2 and last rate, as in if it is cooling too fast, it means not enough air
                             dt in flameCoolingUpperBound..flamelessCoolingUpperBound -> {
                                 //val coolingSpeedBased = max(0.0, min(1.0,(0.5 / (flameCoolingUpperBound - flamelessCoolingUpperBound)) * (dt - flamelessCoolingUpperBound)))
-                                val temperaturBased = (0.7 / (hotLowerBound - coldUpperBound)) * (coldUpperBound - t) // linear between coldUpperBound -> 0 and hotLowerBound -> 0.7
+                                val temperaturBased = temperatureBasedFunction.y(t) // linear between coldUpperBound -> 0 and hotLowerBound -> 0.7
                                 max(0.0, min(lastOpenRate ?: 1.0, temperaturBased))
                             }
                             dt in flamelessCoolingUpperBound..rechargingLowerBound -> 0.0

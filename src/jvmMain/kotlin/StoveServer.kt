@@ -28,6 +28,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 fun main() {
+
     val stove = stoveController()
     val display = stove.devices.filterIsInstance<StringDisplay>().firstOrNull()
     val server = startWebServer(stove)
@@ -55,10 +56,10 @@ fun main() {
         }
         launch {
             while (true) {
-                if(stove.valve.isClosed() != false) {
-                    delay(15.0.minutes)
-                } else {
+                if(stove.valve.isMoving() == true || stove.valve.isClosed() == false) {
                     delay(2.0.minutes)
+                } else {
+                    delay(15.0.minutes)
                 }
                 storeSampleForHistory(stove)
             }
