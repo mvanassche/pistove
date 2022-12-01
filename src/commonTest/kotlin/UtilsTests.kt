@@ -23,11 +23,11 @@ class UtilsTests {
     @Test
     fun linearTest1() {
         val f = LinearFunction(Pair(250.0, 0.7), Pair(100.0, 0.0))
-        assertTrue { (f.y(100.0) - 0.0).absoluteValue < 0.000001 }
-        assertTrue { (f.y(250.0) - 0.7).absoluteValue < 0.000001 }
-        assertTrue { (f.y(175.0) - 0.35).absoluteValue < 0.000001 }
-        println("140 -> " + f.y(140.0))
-        println("120 -> " + f.y(120.0))
+        assertTrue { (f.value(100.0) - 0.0).absoluteValue < 0.000001 }
+        assertTrue { (f.value(250.0) - 0.7).absoluteValue < 0.000001 }
+        assertTrue { (f.value(175.0) - 0.35).absoluteValue < 0.000001 }
+        println("140 -> " + f.value(140.0))
+        println("120 -> " + f.value(120.0))
     }
 
 }

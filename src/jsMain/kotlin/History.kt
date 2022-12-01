@@ -9,7 +9,7 @@ fun showHistoryIn(historyElement: Element, historyDataSelectionElement: Element,
     //val keys = listOf(Pair("stove-thermometer", "temperature"))
     val labels = listOf("time") + graphKeys
     val data = history.map { historyPoint ->
-        arrayOf(historyPoint.atTimePoint.toJSDate()) + keys.map { historyPoint.samples[it.first]?.get(it.second)?.value }
+        arrayOf(historyPoint.atTimePoint.toJSDate()) + keys.map { (historyPoint.samples[it.first]?.get(it.second) as? SampleDoubleValue)?.value?.let { v -> v * scale(it) } }
     }.toTypedArray()
     val options = js("{}")
     options.labels = labels.toTypedArray()
@@ -32,6 +32,17 @@ fun showHistoryIn(historyElement: Element, historyDataSelectionElement: Element,
         }
     }
 }
+
+fun scale(key: Pair<String, String>): Double {
+    if(key.second.endsWith("-rate")) {
+        return 100.0
+    } else if(key.second =="fumes-evolution") {
+        return 0.1
+    } else {
+        return 1.0
+    }
+}
+
 
 fun Array<StoveControllerHistoryPoint>.keys(): List<Pair<String, String>> {
     // FIXME taking random for knowing values really isn't great!

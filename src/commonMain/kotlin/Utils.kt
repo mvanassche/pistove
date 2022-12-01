@@ -26,6 +26,14 @@ interface Identifiable {
 
 interface State<V> {
     val state: V
+
+    fun <V2>map(t: (V) -> V2): State<V2> {
+        return object : State<V2> {
+            override val state: V2
+                get() = t(this@State.state)
+
+        }
+    }
 }
 
 interface WatcheableState {
@@ -77,6 +85,13 @@ suspend fun <V> StateFlow<InstantValue<V>>.waitForCurrentValueCondition(validity
     takeWhile { it.time < Clock.System.now() - validityPeriod || !condition(it.value) }.last()
 }
 
+fun <V> StateFlow<V>.toState(): State<V> {
+    return object : State<V> {
+        override val state: V
+            get() = this@toState.value
+
+    }
+}
 
 //@Serializable
 sealed class BaseSamplingValuesSensor<V>(
@@ -233,7 +248,16 @@ fun <T> Flow<List<InstantValue<T>>>.aggregate(aggregation: (List<T>) -> T): Flow
     }
 }.filterNotNull()
 
-
+/*fun <T> Flow<InstantValue<T>>.derive(): Flow<InstantValue<T>> = zipWithNext().map {
+    if (it.second.time > it.first.time) {
+        InstantValue(
+            (it.second.value - it.first.value) / ((it.second.time.toEpochMilliseconds() - it.first.time.toEpochMilliseconds()).toDouble() / 3600000.0), // in °/h
+            Instant.fromEpochMilliseconds((it.first.time.toEpochMilliseconds() + it.second.time.toEpochMilliseconds()) / 2)
+        )
+    } else {
+        InstantValue(0.0, it.second.time)
+    }
+}*/
 
 
 /*fun <V> ReceiveChannel<InstantValue<V>>.zipWithNext(): ReceiveChannel<InstantValue<V>> {
@@ -253,15 +277,20 @@ fun <T> Flow<List<InstantValue<T>>>.aggregate(aggregation: (List<T>) -> T): Flow
 }*/
 
 
+
+interface Function<X, Y> {
+    fun value(x: X): Y
+}
+
 /**
  * y = mx + b
  */
 @Serializable
-class LinearFunction(val m: Double, val b: Double) {
+class LinearFunction(val m: Double, val b: Double) : Function<Double, Double> {
     constructor(p1: Pair<Double, Double>, p2: Pair<Double, Double>) :
             this((p2.second - p1.second) / (p2.first - p1.first), p1.second - ((p2.second - p1.second) / (p2.first - p1.first) * p1.first))
 
-    fun y(x: Double): Double {
+    override fun value(x: Double): Double {
         return m * x + b
     }
 }

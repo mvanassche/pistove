@@ -109,13 +109,48 @@ class SlowlyCloseWhenCooling(override val id: String, override val valve: Electr
     val rechargingLowerBound = 50.0 // °/h
 
     @Transient
-    val temperatureBasedFunction = LinearFunction(Pair(hotLowerBound, 0.7), Pair(coldUpperBound, 0.0))
+    val temperatureBasedFunction = LinearFunction(Pair(hotLowerBound, 0.6), Pair(coldUpperBound, 0.0))
 
 
     var lastOpenRate: Double? = null
 
+
+    @Transient
+    val fuzzyOpenRate: FuzzyDoubleDisjunction by lazy {
+        val fumesState = fumes.map { it.value } // FIXME Warning, dropping the time component is dangerous...
+        val daFumesState = daFumes!!.toState().map { it.value }
+
+        val burningHot = FunctionOverStateFuzzyAtom(TrueFrom(250.0, 20.0), fumesState)
+        val hot = FunctionOverStateFuzzyAtom(TrueInRange(150.0, 250.0, 20.0), fumesState)
+        val warm = FunctionOverStateFuzzyAtom(TrueInRange(50.0, 150.0, 20.0), fumesState)
+        val cold = FunctionOverStateFuzzyAtom(TrueUntil(50.0, 20.0), fumesState)
+
+        val cooling = FunctionOverStateFuzzyAtom(TrueUntil(-20.0, 10.0), daFumesState)
+        val gentleCooling = FunctionOverStateFuzzyAtom(TrueInRange(-100.0, -20.0, 10.0), daFumesState)
+        val stable = FunctionOverStateFuzzyAtom(TrueInRange(-20.0, 20.0, 10.0), daFumesState)
+        val warming = FunctionOverStateFuzzyAtom(TrueFrom(20.0, 10.0), daFumesState)
+
+        val recharging = FunctionOverStateFuzzyAtom(TrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), PersistentState(1000.toDuration(DurationUnit.HOURS))) // TODO FIXME
+
+        val ignition = recharging or warming
+        val fullFire = burningHot
+        val embers = hot and (stable or gentleCooling) and not(recharging)
+        val discharging = warm and (stable or gentleCooling) and not(recharging)
+        val idle = cold and stable and not(recharging)
+
+        val tempBasedState = fumesState.apply(temperatureBasedFunction).map { min(max(it, 0.0), 0.5) }
+
+        val r1 = ignition implies 1.0
+        val r2 = fullFire implies 1.0
+        val r3 = embers implies tempBasedState
+        val r4 = (discharging or idle) implies 0.0
+
+        or(listOf(r1, r2, r3, r4))
+    }
+
+
     fun openRate(t: Double, dt: Double): Double {
-        val rate =
+        /*val rate =
             if(t > hotLowerBound) {
                 1.0
             } else {
@@ -129,7 +164,7 @@ class SlowlyCloseWhenCooling(override val id: String, override val valve: Electr
                             dt < flameCoolingUpperBound -> max(0.0, min(0.9, max(0.2, lastOpenRate ?: 1.0))) // max 0.2 and last rate, as in if it is cooling too fast, it means not enough air
                             dt in flameCoolingUpperBound..flamelessCoolingUpperBound -> {
                                 //val coolingSpeedBased = max(0.0, min(1.0,(0.5 / (flameCoolingUpperBound - flamelessCoolingUpperBound)) * (dt - flamelessCoolingUpperBound)))
-                                val temperaturBased = temperatureBasedFunction.y(t) // linear between coldUpperBound -> 0 and hotLowerBound -> 0.7
+                                val temperaturBased = temperatureBasedFunction.value(t) // linear between coldUpperBound -> 0 and hotLowerBound -> 0.7
                                 max(0.0, min(lastOpenRate ?: 1.0, temperaturBased))
                             }
                             dt in flamelessCoolingUpperBound..rechargingLowerBound -> 0.0
@@ -140,7 +175,8 @@ class SlowlyCloseWhenCooling(override val id: String, override val valve: Electr
                 }
             }
         lastOpenRate = rate
-        return rate
+        return rate*/
+        return fuzzyOpenRate.state
     }
 
     override val devices: Set<Device>
