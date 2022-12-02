@@ -55,8 +55,10 @@ class PersistentStateWithTimestamp<V>(val initialValue: V) : State<V> {
         lastChanged = Clock.System.now()
     }
 
+    @Transient
     var lastChanged = Instant.DISTANT_PAST
 
+    @Transient
     val timeSinceLastChange = object: State<Duration> {
         override val state: Duration
             get() = Clock.System.now() - lastChanged

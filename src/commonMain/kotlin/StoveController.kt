@@ -41,6 +41,7 @@ class StoveController(
     @Transient
     val lastUserValveRate = PersistentStateWithTimestamp<Double?>(null)
 
+    @Transient
     val autoModeController: AutoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes, lastUserValveRate)
 
     override suspend fun startControlling(): Boolean {
