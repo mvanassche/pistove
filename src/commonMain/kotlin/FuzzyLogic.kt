@@ -1,37 +1,48 @@
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
 
-class TrueFrom(val from: Double, val giveOrTake: Double) : Function<Double, Double> {
+class FuzzyTrueFrom(val from: Double, val giveOrTake: Double) : Function<Double, Double> {
     override fun value(x: Double): Double {
         return 1.0 / (1.0 + 10.0.pow(-(1.0/giveOrTake)*(x-from)))
     }
 }
 
-class TrueUntil(val until: Double, val giveOrTake: Double) : Function<Double, Double> {
+class FuzzyTrueUntil(val until: Double, val giveOrTake: Double) : Function<Double, Double> {
     override fun value(x: Double): Double {
         return 1.0 / (1.0 + 10.0.pow((1.0/giveOrTake)*(x-until)))
     }
 }
 
-class TrueInRange(val from: Double, val until: Double, val giveOrTake: Double) : Function<Double, Double> {
+class FuzzyTrueInRange(val from: Double, val until: Double, val giveOrTakeFrom: Double, val giveOrTakeTo: Double) : Function<Double, Double> {
+    constructor(from: Double, until: Double, giveOrTake: Double) : this(from, until, giveOrTake, giveOrTake)
     override fun value(x: Double): Double {
         return min(
-            1.0 / (1.0 + 10.0.pow(-(1.0/giveOrTake)*(x-from))),
-            1.0 / (1.0 + 10.0.pow((1.0/giveOrTake)*(x-until)))
+            1.0 / (1.0 + 10.0.pow(-(1.0/giveOrTakeFrom)*(x-from))),
+            1.0 / (1.0 + 10.0.pow((1.0/giveOrTakeTo)*(x-until)))
         )
     }
 }
 
-class TrueUntilDuration(val until: Duration, val giveOrTake: Duration) : Function<Duration, Double> {
+open class FuzzyTrueUntilDuration(val until: Duration, val giveOrTake: Duration) : Function<Duration, Double> {
     override fun value(x: Duration): Double {
         return 1.0 / (1.0 + 10.0.pow((1.0/giveOrTake.toDouble(DurationUnit.MILLISECONDS))*(x.toDouble(DurationUnit.MILLISECONDS)-until.toDouble(DurationUnit.MILLISECONDS))))
     }
 }
+
+class TrueUntilDuration(val until: Duration) : Function<Duration, Double> {
+    override fun value(x: Duration): Double {
+        if(x <= until) {
+            return 1.0
+        } else {
+            return 0.0
+        }
+    }
+}
+
 
 fun <X, Y> State<X>.apply(f: Function<X, Y>): State<Y> {
     return object : State<Y> {
@@ -41,80 +52,72 @@ fun <X, Y> State<X>.apply(f: Function<X, Y>): State<Y> {
     }
 }
 
+data class ConfidenceValue<V>(val value: V, val confidence: Double)
 
-interface FuzzyCondition {
-    val confidence: Double
-    infix fun and(other: FuzzyCondition) = FuzzyConjunction(listOf(this, other))
-    infix fun or(other: FuzzyCondition) = FuzzyDisjunction(listOf(this, other))
-    infix fun <V> implies(consequence: State<V>) = FuzzyImplication(this, consequence)
-    infix fun <V> implies(consequence: V) = FuzzyImplication(this, consequence)
+interface FuzzyPredicate<V> : State<ConfidenceValue<V>>
+
+typealias FuzzyCondition = FuzzyPredicate<Unit>
+
+abstract class BaseFuzzyCondition : FuzzyCondition {
+    override val state: ConfidenceValue<Unit>
+        get() = ConfidenceValue(Unit, confidence)
+    abstract val confidence: Double
 }
+
+infix fun FuzzyCondition.and(other: FuzzyCondition) = FuzzyConjunction(listOf(this, other)) {}
+infix fun FuzzyCondition.or(other: FuzzyCondition) = FuzzyDisjunction(listOf(this, other)) {}
 fun not(atom: FuzzyCondition) = FuzzyNegation(atom)
+infix fun <V> FuzzyCondition.implies(consequence: State<V>) = FuzzyImplication(this) { consequence.state }
+infix fun <V> FuzzyCondition.implies(consequence: V) = FuzzyImplication(this) { consequence }
 
-interface ValuedFuzzyCondition<V> : FuzzyCondition, State<V>
 
-fun or(atoms: Collection<ValuedFuzzyCondition<Double>>) = FuzzyDoubleDisjunction(atoms)
-
-open class FuzzyConjunction(open val atoms: Collection<FuzzyCondition>) : FuzzyCondition {
-    override val confidence: Double
-        get() = atoms.minOf { it.confidence }
+class FuzzyConjunction<V>(val predicates: Collection<FuzzyPredicate<V>>, val and: (Collection<V>) -> V) : FuzzyPredicate<V> {
+    override val state: ConfidenceValue<V>
+        get() = predicates.map { it.state }.let { ConfidenceValue(and(it.map { it.value }), it.minBy { it.confidence }.confidence) }
 }
 
-open class FuzzyDisjunction(open val atoms: Collection<FuzzyCondition>) : FuzzyCondition {
-    override val confidence: Double
-        //get() = atoms.maxOf { it.confidence }
-        get() = 1.0 - atoms.productOf { 1.0 - it.confidence }
+class FuzzyDisjunction<V>(val predicates: Collection<FuzzyPredicate<V>>, val or: (Collection<V>) -> V) : FuzzyPredicate<V> {
+    override val state: ConfidenceValue<V>
+        get() = predicates.map { it.state }.let { ConfidenceValue(or(it.map { it.value }), 1.0 - it.productOf { 1.0 - it.confidence }) }
 }
 
-class FuzzyNegation(val atom: FuzzyCondition) : FuzzyCondition {
+class FuzzyNegation<V>(val predicate: FuzzyPredicate<V>) : FuzzyPredicate<V> {
+    override val state: ConfidenceValue<V>
+        get() = predicate.state.let { ConfidenceValue(it.value, 1.0 - it.confidence) }
+}
+
+class FuzzyImplication<Body, Head>(val condition: FuzzyPredicate<Body>, val consequence: (Body) -> Head) : FuzzyPredicate<Head> {
+    override val state: ConfidenceValue<Head>
+        get() = condition.state.let { ConfidenceValue(consequence(it.value), it.confidence) }
+}
+
+class FunctionOverStateFuzzyAtom<Q>(val function: Function<Q, Double>, val inputState: State<Q>) : BaseFuzzyCondition() {
     override val confidence: Double
-        get() = 1.0 - atom.confidence
+        get() = function.value(inputState.state)
 }
 
 
-class FuzzyImplication<V>(val condition: FuzzyCondition, val consequence: State<V>) : ValuedFuzzyCondition<V> {
-    constructor(condition: FuzzyCondition, consequence: V) : this(condition, PersistentState(consequence))
-    override val state: V
-        get() = consequence.state
-    override val confidence: Double
-        get() = condition.confidence
-}
+fun or(predicates: Collection<FuzzyPredicate<Double>>) = FuzzyWeightedAverageDisjunction(predicates)
 
-class FuzzyDoubleDisjunction(val atoms: Collection<ValuedFuzzyCondition<Double>>) : ValuedFuzzyCondition<Double>, FuzzyCondition {
-    // FIXME value and confidence should be at the same time! -> Confidence<>
-    override val state: Double
+class FuzzyWeightedAverageDisjunction(val predicates: Collection<FuzzyPredicate<Double>>) : FuzzyPredicate<Double> {
+
+    override val state: ConfidenceValue<Double>
         get() {
-            return weightedAverage(atoms.map { Pair(it.state, it.confidence) })
-        }
-    override val confidence: Double
-        get() {
-            val wv = atoms.map { Pair(it.state, it.confidence) }
+            val wv = predicates.map { it.state.let { Pair(it.value, it.confidence) } }
             val avg = weightedAverage(wv)
+
             val distances = wv.map { Pair(abs(it.first - avg), it.second) }
             val largestDistance = distances.maxBy { it.first }.first
             val relativeDistances = distances.map { Pair(it.first / largestDistance, it.second) }
-            val result = 1.0 - relativeDistances.productOf { 1.0 - (it.second * (1.0 - it.first)) }
-            return result
-            //return weightedAverage(distances.map { Pair(it.second, 1.0 - (it.first / largestDistance)) })
+            val confidence = 1.0 - relativeDistances.productOf { 1.0 - (it.second * (1.0 - it.first)) }
+
+            return ConfidenceValue(avg, confidence)
         }
 
     // pair(value, weight)
     fun weightedAverage(wv: Collection<Pair<Double, Double>>): Double {
         return wv.sumOf { it.first * it.second } / wv.sumOf { it.second }
     }
-}
-
-inline fun <T> Iterable<T>.productOf(selector: (T) -> Double): Double {
-    var product = 1.0
-    for (element in this) {
-        product *= selector(element)
-    }
-    return product
-}
-
-
-class FunctionOverStateFuzzyAtom<Q>(val function: Function<Q, Double>, val state: State<Q>) : FuzzyCondition {
-    override val confidence: Double
-        get() = function.value(state.state)
 
 }
+

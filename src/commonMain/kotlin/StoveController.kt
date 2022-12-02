@@ -2,8 +2,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlinx.serialization.Transient
 
 
 fun stoveController(): StoveController {
@@ -36,9 +35,13 @@ class StoveController(
     val openButton: PushButton,
     val closeButton: PushButton,
     val autoButton: PushButton,
-    val userCommunication: BasicUserCommunication,
-    val autoModeController: AutoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes)//CloseWhenCold("auto-close-when-cold", valve, fumes)
+    val userCommunication: BasicUserCommunication
 ) : Controller {
+
+    @Transient
+    val lastUserValveRate = PersistentStateWithTimestamp<Double?>(null)
+
+    val autoModeController: AutoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes, lastUserValveRate)
 
     override suspend fun startControlling(): Boolean {
         // ??? what to do? should we start all here or assume they are started elsewhere?
@@ -76,18 +79,28 @@ class StoveController(
 
     suspend fun open() {
         userCommunication.acknowledge()
+        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
         if(valve.open()) {
+            userCommunication.acknowledge()
+        }
+    }
+    suspend fun setOpenRateTo(rate: Double) {
+        userCommunication.acknowledge()
+        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
+        if(valve.setOpenRateTo(rate)) {
             userCommunication.acknowledge()
         }
     }
     suspend fun openSome() {
         userCommunication.acknowledge()
+        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
         if(valve.openMore()) {
             userCommunication.acknowledge()
         }
     }
     suspend fun closeSome() {
         userCommunication.acknowledge()
+        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
         if(valve.closeMore()) {
             userCommunication.acknowledge()
         }
@@ -95,6 +108,7 @@ class StoveController(
 
     suspend fun close() {
         userCommunication.acknowledge()
+        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
         if(valve.close()) {
             userCommunication.acknowledge()
         }

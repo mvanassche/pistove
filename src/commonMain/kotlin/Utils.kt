@@ -4,6 +4,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -45,6 +46,24 @@ interface WatcheableState {
 
 @Serializable
 open class PersistentState<V>(override var state: V) : State<V>
+
+@Serializable
+class PersistentStateWithTimestamp<V>(val initialValue: V) : State<V> {
+    override var state: V = initialValue
+    set(value) {
+        field = value
+        lastChanged = Clock.System.now()
+    }
+
+    var lastChanged = Instant.DISTANT_PAST
+
+    val timeSinceLastChange = object: State<Duration> {
+        override val state: Duration
+            get() = Clock.System.now() - lastChanged
+
+    }
+
+}
 
 
 fun <V> State<InstantValue<V>>.maybeCurrentValue(validityPeriod: Duration): V? {
@@ -293,4 +312,12 @@ class LinearFunction(val m: Double, val b: Double) : Function<Double, Double> {
     override fun value(x: Double): Double {
         return m * x + b
     }
+}
+
+inline fun <T> Iterable<T>.productOf(selector: (T) -> Double): Double {
+    var product = 1.0
+    for (element in this) {
+        product *= selector(element)
+    }
+    return product
 }
