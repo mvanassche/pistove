@@ -1,31 +1,26 @@
-import io.ktor.application.*
-import io.ktor.features.*
-import io.ktor.html.*
 import io.ktor.http.*
-import io.ktor.http.cio.websocket.*
 import io.ktor.http.content.*
-import io.ktor.response.*
-import io.ktor.routing.*
+import io.ktor.server.application.*
 import io.ktor.server.engine.*
-import io.ktor.server.netty.*
+import io.ktor.server.html.*
+import io.ktor.server.http.content.*
+import io.ktor.server.plugins.cors.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.util.*
+import io.ktor.server.websocket.*
+import io.ktor.util.*
 import io.ktor.websocket.*
+import io.ktor.server.netty.*
+import kotlinx.html.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Clock
-import kotlinx.html.*
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import java.io.File
-import java.nio.file.Path
 import java.time.Duration
-import java.time.ZonedDateTime
-import kotlin.io.path.listDirectoryEntries
-import kotlin.io.path.name
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 fun main() {
 
@@ -77,8 +72,6 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
         install(WebSockets) {
             //timeout = Duration.ofSeconds(15)
             pingPeriod = Duration.ofSeconds(30)
-        }
-        install(ContentNegotiation) {
         }
 
         routing {
