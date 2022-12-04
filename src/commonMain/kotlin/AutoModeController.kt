@@ -114,11 +114,14 @@ class SlowlyCloseWhenCooling(
         val fastCooling = FunctionOverStateFuzzyAtom(FuzzyTrueUntil(-100.0, 20.0), daFumesState)
         val gentleCooling = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(-100.0, -20.0, 10.0), daFumesState)
         val stable = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(-20.0, 20.0, 10.0), daFumesState)
-        val warming = FunctionOverStateFuzzyAtom(FuzzyTrueFrom(20.0, 10.0), daFumesState)
+        val warming = FunctionOverStateFuzzyAtom(FuzzyTrueFrom(20.0, 10.0), daFumesState) // > 20°/h  +/- 10
 
 
         val recharging = FunctionOverStateFuzzyAtom(FuzzyTrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), PersistentState(1000.toDuration(DurationUnit.HOURS))) // TODO FIXME
-        val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom(TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
+
+        // FIXME Until not really connected, disable user rule
+        //val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom(TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
+        val userRecentlyChangedOpenRate = AlwaysFalseCondition
 
         val ignition = recharging or warming
         val fullFire = burningHot
@@ -127,10 +130,10 @@ class SlowlyCloseWhenCooling(
         val discharging = warm and (stable or gentleCooling) and not(recharging)
         val idle = cold and stable and not(recharging)
 
-        val tempBasedState = fumesState.apply(temperatureBasedFunction).map { min(max(it, 0.0), 0.5) }
+        val tempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.5), Pair(100.0, 0.0))).map { min(max(it, 0.0), 0.5) }
         val dyingFlamesTempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.9), Pair(180.0, 0.6))).map { min(max(it, 0.6), 0.9) }
 
-        val r1 = ignition implies 1.0
+        val r1 = ignition implies 1.0 // implies ValveOpenRate(1.0)
         val r2 = fullFire implies 1.0
         val r2b = dyingFlames and not(userRecentlyChangedOpenRate) implies dyingFlamesTempBasedState
         val r3 = embers and not(userRecentlyChangedOpenRate) implies tempBasedState

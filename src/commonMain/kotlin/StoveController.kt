@@ -78,41 +78,24 @@ class StoveController(
 
     }
 
-    suspend fun open() {
-        userCommunication.acknowledge()
-        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
-        if(valve.open()) {
-            userCommunication.acknowledge()
-        }
-    }
     suspend fun setOpenRateTo(rate: Double) {
         userCommunication.acknowledge()
-        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
+        lastUserValveRate.state = rate
         if(valve.setOpenRateTo(rate)) {
             userCommunication.acknowledge()
         }
     }
+    suspend fun open() {
+        setOpenRateTo(1.0)
+    }
     suspend fun openSome() {
-        userCommunication.acknowledge()
-        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
-        if(valve.openMore()) {
-            userCommunication.acknowledge()
-        }
+        setOpenRateTo((valve.openRateOrTarget ?: 0.0) + 0.1)
     }
     suspend fun closeSome() {
-        userCommunication.acknowledge()
-        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
-        if(valve.closeMore()) {
-            userCommunication.acknowledge()
-        }
+        setOpenRateTo((valve.openRateOrTarget ?: 1.0) - 0.1)
     }
-
     suspend fun close() {
-        userCommunication.acknowledge()
-        lastUserValveRate.state = valve.state?.targetOrKnownOpenRate
-        if(valve.close()) {
-            userCommunication.acknowledge()
-        }
+        setOpenRateTo(0.0)
     }
 
     suspend fun auto() {

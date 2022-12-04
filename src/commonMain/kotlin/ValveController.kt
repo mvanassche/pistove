@@ -12,27 +12,20 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
 
 @Serializable
-sealed interface ValveState {
-    val targetOrKnownOpenRate: Double
-}
+sealed interface ValveState
 
 @Serializable
 sealed interface KnownValveState : ValveState {
     val openRate: Double
-    override val targetOrKnownOpenRate get() = openRate
 }
 
 @Serializable
 sealed interface MovingValveState : ValveState {
     val targetOpenRate: Double
-    override val targetOrKnownOpenRate get() = targetOpenRate
 }
 
 @Serializable
-sealed interface MovingFromValveState : MovingValveState, KnownValveState {
-    override val targetOrKnownOpenRate: Double
-        get() = targetOpenRate
-}
+sealed interface MovingFromValveState : MovingValveState, KnownValveState
 
 @Serializable
 class OpeningValveState(val timeForFullMotion: Duration, val startOpenRate: Double, override val targetOpenRate: Double,

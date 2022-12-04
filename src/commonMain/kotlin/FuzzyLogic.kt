@@ -58,6 +58,12 @@ interface FuzzyPredicate<V> : State<ConfidenceValue<V>>
 
 typealias FuzzyCondition = FuzzyPredicate<Unit>
 
+object AlwaysFalseCondition: BaseFuzzyCondition() {
+    override val confidence: Double
+        get() = 0.0
+
+}
+
 abstract class BaseFuzzyCondition : FuzzyCondition {
     override val state: ConfidenceValue<Unit>
         get() = ConfidenceValue(Unit, confidence)

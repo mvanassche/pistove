@@ -63,7 +63,14 @@ class FuzzyTests {
         fumesTemperature.state = 50.0
         fumesTemperatureSpeed.state = 40.0
         timeSinceLastRechargingNotification.state = 5.toDuration(DurationUnit.MINUTES)
-                println("ignition: ${ignition.state.confidence} fullFire: ${fullFire.state.confidence} dying: ${dyingFlames.state.confidence} embers: ${embers.state.confidence} discharging: ${discharging.state.confidence} idle: ${idle.state.confidence}")
+        println("ignition: ${ignition.state.confidence} fullFire: ${fullFire.state.confidence} dying: ${dyingFlames.state.confidence} embers: ${embers.state.confidence} discharging: ${discharging.state.confidence} idle: ${idle.state.confidence}")
+        assertEquals(ignition, inferredStates.maxBy { it.state.confidence })
+        println("Rate ${openRate.state})\n")
+
+        fumesTemperature.state = 69.0
+        fumesTemperatureSpeed.state = 385.0
+        timeSinceLastRechargingNotification.state = 100000.toDuration(DurationUnit.MINUTES)
+        println("ignition: ${ignition.state.confidence} fullFire: ${fullFire.state.confidence} dying: ${dyingFlames.state.confidence} embers: ${embers.state.confidence} discharging: ${discharging.state.confidence} idle: ${idle.state.confidence}")
         assertEquals(ignition, inferredStates.maxBy { it.state.confidence })
         println("Rate ${openRate.state})\n")
 
