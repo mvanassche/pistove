@@ -28,7 +28,8 @@ fun storeSampleForHistory(stove: StoveController) {
 
 fun jsonStringForPeriod(period: String): String {
     return "[" + (period.let {
-        File("/stove/data/history/${it}.json").readLines().joinToString(",")
+        File("/stove/data/history/${it}.json").readLines().filter { it.isNotBlank() }
+            .map { it.trim { it.isISOControl() } }.joinToString(",")
     }) + "]"
 
 }

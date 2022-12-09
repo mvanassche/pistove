@@ -5,6 +5,16 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
 
+fun ClosedRange<Double>.fuzzy(giveOrTake: Double): Function<Double, Double> {
+    if(start == Double.NEGATIVE_INFINITY) {
+        return FuzzyTrueUntil(endInclusive, giveOrTake)
+    } else if(endInclusive == Double.POSITIVE_INFINITY) {
+        return FuzzyTrueFrom(start, giveOrTake)
+    } else {
+        return FuzzyTrueInRange(start, endInclusive, giveOrTake)
+    }
+}
+
 class FuzzyTrueFrom(val from: Double, val giveOrTake: Double) : Function<Double, Double> {
     override fun value(x: Double): Double {
         return 1.0 / (1.0 + 10.0.pow(-(1.0/giveOrTake)*(x-from)))

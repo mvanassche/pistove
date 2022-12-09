@@ -1,5 +1,6 @@
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -7,6 +8,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -18,6 +20,7 @@ sealed class AutoModeController : Controller {
     abstract val valve: ElectricValveController
     abstract val fumes: TemperatureSensor
     abstract suspend fun stateMessage(): String
+    abstract var enabled: Boolean
 }
 
 
@@ -29,6 +32,8 @@ class SlowlyCloseWhenCooling(
     override val fumes: TemperatureSensor,
     val lastUserValveRate: PersistentStateWithTimestamp<Double?>
 ) : AutoModeController(), Sampleable {
+
+    override var enabled = false
 
     @Transient
     var daFumes: StateFlow<InstantValue<Double>>? = null
@@ -59,6 +64,24 @@ class SlowlyCloseWhenCooling(
 
                 //daFumes.zipWithNext()
             }
+
+            while(true) {
+                if(enabled) {
+                    launch {
+                        openRate()?.let {
+                            if (it != lastOpenRate) {
+                                println(" open to $it")
+                                lastOpenRate = it
+                                valve.setOpenRateTo(it)
+                            } else {
+                                println("not change because same $it")
+                            }
+                        }
+                    }
+                }
+                delay(30.toDuration(DurationUnit.SECONDS))
+            }
+
         }
 
         awaitCancellation()
@@ -105,7 +128,7 @@ class SlowlyCloseWhenCooling(
         val fumesState = fumes.map { it.value } // FIXME Warning, dropping the time component is dangerous...
         val daFumesState = daFumes!!.toState().map { it.value }
 
-        val burningHot = FunctionOverStateFuzzyAtom(FuzzyTrueFrom(250.0, 20.0), fumesState)
+        val burningHot = FunctionOverStateFuzzyAtom((250.0 .. Double.POSITIVE_INFINITY).fuzzy(20.0), fumesState)
         val hot = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(150.0, 250.0, 20.0), fumesState)
         val warm = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(50.0, 150.0, 20.0), fumesState)
         val cold = FunctionOverStateFuzzyAtom(FuzzyTrueUntil(50.0, 20.0), fumesState)
@@ -119,9 +142,8 @@ class SlowlyCloseWhenCooling(
 
         val recharging = FunctionOverStateFuzzyAtom(FuzzyTrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), PersistentState(1000.toDuration(DurationUnit.HOURS))) // TODO FIXME
 
-        // FIXME Until not really connected, disable user rule
-        //val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom(TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
-        val userRecentlyChangedOpenRate = AlwaysFalseCondition
+        val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom(TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
+        //val userRecentlyChangedOpenRate = AlwaysFalseCondition
 
         val ignition = recharging or warming
         val fullFire = burningHot
@@ -144,13 +166,13 @@ class SlowlyCloseWhenCooling(
     }
 
 
-    fun openRate(t: Double, dt: Double): Double {
+    fun openRate(): Double? {
         return fuzzyOpenRate.state.let {
             if(it.confidence >= 0.5) {
-                lastOpenRate = it.value
-                return it.value
+                val rounded = (it.value * 10.0).roundToInt() / 10.0
+                return rounded
             } else {
-                return lastOpenRate ?: 1.0
+                return lastOpenRate
             }
         }
     }
@@ -163,8 +185,13 @@ class SlowlyCloseWhenCooling(
     }
 
     override suspend fun stateMessage(): String {
-        return (daFumes?.currentValueOrNull(1.0.minutes)?.let {
-            it.toString(0) + "°/h" + (openRate(fumes.state.value, it) * 100.0).toString(0)
-        } ?: "")
+        val df = (daFumes?.currentValueOrNull(1.0.minutes)?.let { it.toString(0) + "°/h" } ?: "")
+        val message: String
+        if(enabled) {
+            message = " ON"
+        } else {
+            message = openRate()?.let { (it * 100.0).toString(0) } ?: "?"
+        }
+        return df + message
     }
 }

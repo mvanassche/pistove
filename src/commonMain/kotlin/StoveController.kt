@@ -55,6 +55,7 @@ class StoveController(
             launch { openButton.startSensing() }
             launch { closeButton.startSensing() }
             launch { autoButton.startSensing() }
+            launch { autoModeController.startControlling() }
             openButton.addOnClickListener { this.launch { openSome() } }
             closeButton.addOnClickListener { this.launch { closeSome() } }
             openButton.addOnLongClickListener { this.launch { open() } }
@@ -99,12 +100,8 @@ class StoveController(
     }
 
     suspend fun auto() {
-        userCommunication.acknowledge() // TODO only ackownledge when it is engaged for real!!?? return on startControlling!
-        if(autoModeController.startControlling()) {
-            userCommunication.acknowledge()
-        } else {
-            userCommunication.alert()
-        }
+        userCommunication.acknowledge()
+        autoModeController.enabled = !autoModeController.enabled
     }
 
     suspend fun refreshDisplay() {
