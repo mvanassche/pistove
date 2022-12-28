@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import mu.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -14,6 +15,8 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+
+private val logger = KotlinLogging.logger {}
 
 @Serializable
 sealed class AutoModeController : Controller {
@@ -30,51 +33,24 @@ class SlowlyCloseWhenCooling(
     override val id: String,
     override val valve: ElectricValveController,
     override val fumes: TemperatureSensor,
+    val daFumes: StateFlow<InstantValue<Double>>,
     val lastUserValveRate: PersistentStateWithTimestamp<Double?>
 ) : AutoModeController(), Sampleable {
 
-    override var enabled = false
-
-    @Transient
-    var daFumes: StateFlow<InstantValue<Double>>? = null
+    override var enabled = true
 
     override suspend fun startControlling(): Boolean {
 
-        val fumes = fumes.windowed(30.0.seconds)
-            .aggregate { it.average() }
-            .sampleInstantValue(30.0.seconds)
-
-        // average fumes before  deriving for less noise?
-        val dFumes = fumes.zipWithNext().map {
-            if (it.second.time > it.first.time) {
-                InstantValue(
-                    (it.second.value - it.first.value) / ((it.second.time.toEpochMilliseconds() - it.first.time.toEpochMilliseconds()).toDouble() / 3600000.0), // in °/h
-                    Instant.fromEpochMilliseconds((it.first.time.toEpochMilliseconds() + it.second.time.toEpochMilliseconds()) / 2)
-                )
-            } else {
-                InstantValue(0.0, it.second.time)
-            }
-        }
-
         coroutineScope {
-            launch {
-                daFumes = dFumes.windowed(5.0.minutes).map {
-                    InstantValue(it.map { it.value }.average(), it.last().time)
-                }.stateIn(this)
-
-                //daFumes.zipWithNext()
-            }
 
             while(true) {
                 if(enabled) {
                     launch {
                         openRate()?.let {
                             if (it != lastOpenRate) {
-                                println(" open to $it")
+                                logger.info { "Change valve to $it because: $fuzzyOpenRate" }
                                 lastOpenRate = it
                                 valve.setOpenRateTo(it)
-                            } else {
-                                println("not change because same $it")
                             }
                         }
                     }
@@ -126,23 +102,23 @@ class SlowlyCloseWhenCooling(
     @Transient
     val fuzzyOpenRate: FuzzyPredicate<Double> by lazy {
         val fumesState = fumes.map { it.value } // FIXME Warning, dropping the time component is dangerous...
-        val daFumesState = daFumes!!.toState().map { it.value }
+        val daFumesState = daFumes.toState().map { it.value }
 
-        val burningHot = FunctionOverStateFuzzyAtom((250.0 .. Double.POSITIVE_INFINITY).fuzzy(20.0), fumesState)
-        val hot = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(150.0, 250.0, 20.0), fumesState)
-        val warm = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(50.0, 150.0, 20.0), fumesState)
-        val cold = FunctionOverStateFuzzyAtom(FuzzyTrueUntil(50.0, 20.0), fumesState)
+        val burningHot = FunctionOverStateFuzzyAtom("burning hot", (250.0 .. Double.POSITIVE_INFINITY).fuzzy(20.0), fumesState)
+        val hot = FunctionOverStateFuzzyAtom("hot", FuzzyTrueInRange(150.0, 250.0, 20.0), fumesState)
+        val warm = FunctionOverStateFuzzyAtom("warm", FuzzyTrueInRange(50.0, 150.0, 20.0), fumesState)
+        val cold = FunctionOverStateFuzzyAtom("cold", FuzzyTrueUntil(50.0, 20.0), fumesState)
 
-        val cooling = FunctionOverStateFuzzyAtom(FuzzyTrueUntil(-20.0, 10.0), daFumesState)
-        val fastCooling = FunctionOverStateFuzzyAtom(FuzzyTrueUntil(-100.0, 20.0), daFumesState)
-        val gentleCooling = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(-100.0, -20.0, 10.0), daFumesState)
-        val stable = FunctionOverStateFuzzyAtom(FuzzyTrueInRange(-20.0, 20.0, 10.0), daFumesState)
-        val warming = FunctionOverStateFuzzyAtom(FuzzyTrueFrom(20.0, 10.0), daFumesState) // > 20°/h  +/- 10
+        val cooling = FunctionOverStateFuzzyAtom("cooling", FuzzyTrueUntil(-20.0, 10.0), daFumesState)
+        val fastCooling = FunctionOverStateFuzzyAtom("cooling fast", FuzzyTrueUntil(-100.0, 20.0), daFumesState)
+        val gentleCooling = FunctionOverStateFuzzyAtom("gentle cooling", FuzzyTrueInRange(-100.0, -20.0, 10.0), daFumesState)
+        val stable = FunctionOverStateFuzzyAtom("stable", FuzzyTrueInRange(-20.0, 20.0, 10.0), daFumesState)
+        val warming = FunctionOverStateFuzzyAtom("warming", FuzzyTrueFrom(20.0, 10.0), daFumesState) // > 20°/h  +/- 10
 
 
-        val recharging = FunctionOverStateFuzzyAtom(FuzzyTrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), PersistentState(1000.toDuration(DurationUnit.HOURS))) // TODO FIXME
+        val recharging = FunctionOverStateFuzzyAtom("recharged", FuzzyTrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), PersistentState(1000.toDuration(DurationUnit.HOURS))) // TODO FIXME
 
-        val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom(TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
+        val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom("user said so", TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
         //val userRecentlyChangedOpenRate = AlwaysFalseCondition
 
         val ignition = recharging or warming
@@ -152,10 +128,12 @@ class SlowlyCloseWhenCooling(
         val discharging = warm and (stable or gentleCooling) and not(recharging)
         val idle = cold and stable and not(recharging)
 
-        val tempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.5), Pair(100.0, 0.0))).map { min(max(it, 0.0), 0.5) }
+        val tempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.5), Pair(120.0, 0.0))).map { min(max(it, 0.0), 0.5) }
         val dyingFlamesTempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.9), Pair(180.0, 0.6))).map { min(max(it, 0.6), 0.9) }
 
-        val r1 = ignition implies 1.0 // implies ValveOpenRate(1.0)
+        val ignitionSpeedBasedState = daFumesState.apply(LinearFunction(Pair(0.0, 0.3), Pair(250.0, 1.0))).map { min(max(it, 0.3), 1.0) }
+
+        val r1 = ignition and not(fullFire) implies ignitionSpeedBasedState //1.0 // implies ValveOpenRate(1.0)
         val r2 = fullFire implies 1.0
         val r2b = dyingFlames and not(userRecentlyChangedOpenRate) implies dyingFlamesTempBasedState
         val r3 = embers and not(userRecentlyChangedOpenRate) implies tempBasedState

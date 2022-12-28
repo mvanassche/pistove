@@ -1,8 +1,14 @@
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 
 fun stoveController(): StoveController {
@@ -42,11 +48,31 @@ class StoveController(
     val lastUserValveRate = PersistentStateWithTimestamp<Double?>(null)
 
     @Transient
-    val autoModeController: AutoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes, lastUserValveRate)
+    var daFumes: StateFlow<InstantValue<Double>>? = null
+
+    @Transient
+    var autoModeController: AutoModeController? = null
 
     override suspend fun startControlling(): Boolean {
         // ??? what to do? should we start all here or assume they are started elsewhere?
         coroutineScope {
+
+            val fumesSmoothed = fumes.windowed(30.0.seconds)
+                .aggregate { it.average() }
+                .sampleInstantValue(30.0.seconds)
+
+            // average fumes before  deriving for less noise?
+            val dFumes = fumesSmoothed.zipWithNext().map {
+                if (it.second.time > it.first.time) {
+                    InstantValue(
+                        (it.second.value - it.first.value) / ((it.second.time.toEpochMilliseconds() - it.first.time.toEpochMilliseconds()).toDouble() / 3600000.0), // in °/h
+                        Instant.fromEpochMilliseconds((it.first.time.toEpochMilliseconds() + it.second.time.toEpochMilliseconds()) / 2)
+                    )
+                } else {
+                    InstantValue(0.0, it.second.time)
+                }
+            }
+
             launch { valve.startControlling() }
             launch { fumes.startSensing() }
             launch { accumulator.startSensing() }
@@ -55,7 +81,6 @@ class StoveController(
             launch { openButton.startSensing() }
             launch { closeButton.startSensing() }
             launch { autoButton.startSensing() }
-            launch { autoModeController.startControlling() }
             openButton.addOnClickListener { this.launch { openSome() } }
             closeButton.addOnClickListener { this.launch { closeSome() } }
             openButton.addOnLongClickListener { this.launch { open() } }
@@ -64,16 +89,23 @@ class StoveController(
             identifieables.filterIsInstance<WatcheableState>().forEach {
                 it.addOnStateChange { launch { refreshDisplay() } }
             }
+            launch {
+                daFumes = dFumes.windowed(5.0.minutes).map {
+                    InstantValue(it.map { it.value }.average(), it.last().time)
+                }.stateIn(this)
+                autoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes, daFumes!!, lastUserValveRate)
+                autoModeController?.startControlling()
+            }
             awaitCancellation()
         }
         return true
     }
 
     override val devices: Set<Device>
-        get() = setOf(fumes, accumulator, room, outside, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices + autoModeController.devices
+        get() = setOf(fumes, accumulator, room, outside, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices
 
     override val identifieables: Set<Identifiable>
-        get() = devices + autoModeController + valve
+        get() = devices + valve + (autoModeController?.let { setOf(it) } ?: emptySet())
 
     fun stopControlling() {
 
@@ -101,7 +133,7 @@ class StoveController(
 
     suspend fun auto() {
         userCommunication.acknowledge()
-        autoModeController.enabled = !autoModeController.enabled
+        autoModeController?.let { it.enabled = !it.enabled }
     }
 
     suspend fun refreshDisplay() {
@@ -109,7 +141,7 @@ class StoveController(
     }
 
     suspend fun stateDisplayString(): List<List<String>> {
-        return listOf(listOf(room.stateMessage(), fumes.stateMessage(), accumulator.stateMessage()), listOf(/*outside.stateMessage(), */valve.stateMessage(), autoModeController.stateMessage())
+        return listOf(listOf(room.stateMessage(), fumes.stateMessage(), accumulator.stateMessage()), listOf(/*outside.stateMessage(), */valve.stateMessage(), autoModeController?.stateMessage() ?: "")
         )
     }
 

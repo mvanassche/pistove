@@ -32,7 +32,6 @@ interface State<V> {
         return object : State<V2> {
             override val state: V2
                 get() = t(this@State.state)
-
         }
     }
 }

@@ -8,3 +8,12 @@ sudo apt-get install openjdk-11-jdk
 ```
 sudo apt-get install pigpio
 ```
+
+# Hardware
+
+## Stove
+
+## Pi
+### Pi wiring
+
+# Software

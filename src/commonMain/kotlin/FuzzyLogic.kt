@@ -62,7 +62,11 @@ fun <X, Y> State<X>.apply(f: Function<X, Y>): State<Y> {
     }
 }
 
-data class ConfidenceValue<V>(val value: V, val confidence: Double)
+data class ConfidenceValue<V>(val value: V, val confidence: Double) {
+    override fun toString(): String {
+        return "$value (${(confidence * 100.0).toString(0)}%)"
+    }
+}
 
 interface FuzzyPredicate<V> : State<ConfidenceValue<V>>
 
@@ -78,6 +82,10 @@ abstract class BaseFuzzyCondition : FuzzyCondition {
     override val state: ConfidenceValue<Unit>
         get() = ConfidenceValue(Unit, confidence)
     abstract val confidence: Double
+
+    override fun toString(): String {
+        return (confidence * 100.0).toString(0) + "%"
+    }
 }
 
 infix fun FuzzyCondition.and(other: FuzzyCondition) = FuzzyConjunction(listOf(this, other)) {}
@@ -90,26 +98,46 @@ infix fun <V> FuzzyCondition.implies(consequence: V) = FuzzyImplication(this) { 
 class FuzzyConjunction<V>(val predicates: Collection<FuzzyPredicate<V>>, val and: (Collection<V>) -> V) : FuzzyPredicate<V> {
     override val state: ConfidenceValue<V>
         get() = predicates.map { it.state }.let { ConfidenceValue(and(it.map { it.value }), it.minBy { it.confidence }.confidence) }
+
+    override fun toString(): String {
+        return predicates.joinToString(" and ") { it.toString() }
+    }
 }
 
 class FuzzyDisjunction<V>(val predicates: Collection<FuzzyPredicate<V>>, val or: (Collection<V>) -> V) : FuzzyPredicate<V> {
     override val state: ConfidenceValue<V>
         get() = predicates.map { it.state }.let { ConfidenceValue(or(it.map { it.value }), 1.0 - it.productOf { 1.0 - it.confidence }) }
+
+    override fun toString(): String {
+        return "(" + predicates.joinToString(" or ") { it.toString() } + ")"
+    }
 }
 
 class FuzzyNegation<V>(val predicate: FuzzyPredicate<V>) : FuzzyPredicate<V> {
     override val state: ConfidenceValue<V>
         get() = predicate.state.let { ConfidenceValue(it.value, 1.0 - it.confidence) }
+
+    override fun toString(): String {
+        return "not($predicate)"
+    }
 }
 
 class FuzzyImplication<Body, Head>(val condition: FuzzyPredicate<Body>, val consequence: (Body) -> Head) : FuzzyPredicate<Head> {
     override val state: ConfidenceValue<Head>
         get() = condition.state.let { ConfidenceValue(consequence(it.value), it.confidence) }
+
+    override fun toString(): String {
+        return "[$state ← $condition]"
+    }
 }
 
-class FunctionOverStateFuzzyAtom<Q>(val function: Function<Q, Double>, val inputState: State<Q>) : BaseFuzzyCondition() {
+class FunctionOverStateFuzzyAtom<Q>(val name: String, val function: Function<Q, Double>, val inputState: State<Q>) : BaseFuzzyCondition() {
     override val confidence: Double
         get() = function.value(inputState.state)
+
+    override fun toString(): String {
+        return "$name ${super.toString()}"
+    }
 }
 
 
@@ -135,5 +163,9 @@ class FuzzyWeightedAverageDisjunction(val predicates: Collection<FuzzyPredicate<
         return wv.sumOf { it.first * it.second } / wv.sumOf { it.second }
     }
 
+    override fun toString(): String {
+        return "$state:\n" +
+            predicates.filter { it.state.confidence > 0.4 }.joinToString("\n") { "\t$it" }
+    }
 }
 
