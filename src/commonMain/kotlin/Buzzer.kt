@@ -23,7 +23,9 @@ sealed interface Buzzer: Actuator {
     suspend fun heyHo() {
         beep(3000, 200.toDuration(DurationUnit.MILLISECONDS))
         delay(200)
-        beep(2000, 100.toDuration(DurationUnit.MILLISECONDS))
+        beep(3000, 150.toDuration(DurationUnit.MILLISECONDS))
+        delay(150)
+        beep(2000, 250.toDuration(DurationUnit.MILLISECONDS))
     }
 
     suspend fun dodadi() {

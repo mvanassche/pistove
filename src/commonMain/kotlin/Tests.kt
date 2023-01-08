@@ -85,6 +85,9 @@ class TestButton(override val id: String) : PushButton() {
 object TestBasicUserCommunication : BasicUserCommunication {
     override suspend fun welcome() {}
     override suspend fun goodbye() {}
+    override suspend fun notify() {
+        println("NOTIFY")
+    }
 
     override suspend fun alert() {
         println("ALERT")

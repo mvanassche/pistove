@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -24,10 +25,10 @@ fun stoveController(): StoveController {
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
     val openButton = PushButtonGPIO("open-button", 13)
     val closeButton = PushButtonGPIO("close-button", 26)
-    val autoButton = PushButtonGPIO("auto-button", 19)
+    val rechargeButton = PushButtonGPIO("recharge-button", 19)
     val display = Display1602LCDI2C("display", 1, 0x27)
     val comm = DisplayAndBuzzerUserCommunication("user-communication", display, buzzer)
-    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, openButton, closeButton, autoButton, comm)
+    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, openButton, closeButton, rechargeButton, comm)
 }
 
 @Serializable
@@ -40,15 +41,24 @@ class StoveController(
     val outside: TemperatureSensor,
     val openButton: PushButton,
     val closeButton: PushButton,
-    val autoButton: PushButton,
+    val rechargeButton: PushButton,
     val userCommunication: BasicUserCommunication
 ) : Controller {
+
+    val accumulatorLowTemperature = 30.0
+    val accumulatorHighTemperature = 130.0
 
     @Transient
     val lastUserValveRate = PersistentStateWithTimestamp<Double?>(null)
 
     @Transient
+    val lastTimeRecharged = PersistentStateWithTimestamp<Unit>(Unit)
+
+    @Transient
     var daFumes: StateFlow<InstantValue<Double>>? = null
+
+    @Transient
+    var chargedRate: StateFlow<InstantValue<Double>>? = null
 
     @Transient
     var autoModeController: AutoModeController? = null
@@ -80,12 +90,12 @@ class StoveController(
             launch { outside.startSensing() }
             launch { openButton.startSensing() }
             launch { closeButton.startSensing() }
-            launch { autoButton.startSensing() }
+            launch { rechargeButton.startSensing() }
             openButton.addOnClickListener { this.launch { openSome() } }
             closeButton.addOnClickListener { this.launch { closeSome() } }
             openButton.addOnLongClickListener { this.launch { open() } }
             closeButton.addOnLongClickListener { this.launch { close() } }
-            autoButton.addOnClickListener { this.launch { auto() } }
+            rechargeButton.addOnClickListener { this.launch { onRecharged() } }
             identifieables.filterIsInstance<WatcheableState>().forEach {
                 it.addOnStateChange { launch { refreshDisplay() } }
             }
@@ -93,8 +103,13 @@ class StoveController(
                 daFumes = dFumes.windowed(5.0.minutes).map {
                     InstantValue(it.map { it.value }.average(), it.last().time)
                 }.stateIn(this)
-                autoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes, daFumes!!, lastUserValveRate)
+                autoModeController = SlowlyCloseWhenCooling("auto-close", valve, fumes, daFumes!!, lastUserValveRate, lastTimeRecharged)
                 autoModeController?.startControlling()
+            }
+            launch {
+                chargedRate = accumulator.windowed(5.0.minutes).map {
+                    InstantValue((max(0.0, it.map { it.value }.average() - accumulatorLowTemperature) / (accumulatorHighTemperature - accumulatorLowTemperature)))
+                }.stateIn(this)
             }
             awaitCancellation()
         }
@@ -102,7 +117,7 @@ class StoveController(
     }
 
     override val devices: Set<Device>
-        get() = setOf(fumes, accumulator, room, outside, openButton, closeButton, autoButton) + valve.devices + userCommunication.devices
+        get() = setOf(fumes, accumulator, room, outside, openButton, closeButton, rechargeButton) + valve.devices + userCommunication.devices
 
     override val identifieables: Set<Identifiable>
         get() = devices + valve + (autoModeController?.let { setOf(it) } ?: emptySet())
@@ -136,12 +151,23 @@ class StoveController(
         autoModeController?.let { it.enabled = !it.enabled }
     }
 
+    suspend fun onRecharged() {
+        lastTimeRecharged.state = Unit
+        userCommunication.acknowledge()
+    }
+
     suspend fun refreshDisplay() {
         (userCommunication as? StringDisplay)?.displayTable(stateDisplayString())
     }
 
+    suspend fun accumulatorStateMessage(): String {
+        return (chargedRate?.currentValueOrNull(10.0.minutes)?.let { (it * 100.0).toString(0) + "%" } ?: accumulator.stateMessage())
+    }
+
     suspend fun stateDisplayString(): List<List<String>> {
-        return listOf(listOf(room.stateMessage(), fumes.stateMessage(), accumulator.stateMessage()), listOf(/*outside.stateMessage(), */valve.stateMessage(), autoModeController?.stateMessage() ?: "")
+        return listOf(
+            listOf(room.stateMessage(), fumes.stateMessage(), accumulatorStateMessage()),
+            listOf(/*outside.stateMessage(), */valve.stateMessage(), autoModeController?.stateMessage() ?: "")
         )
     }
 

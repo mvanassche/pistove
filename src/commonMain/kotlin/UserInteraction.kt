@@ -7,6 +7,7 @@ sealed interface BasicUserCommunication {
     suspend fun welcome()
     suspend fun goodbye()
 
+    suspend fun notify()
     suspend fun alert()
     suspend fun acknowledge()
     val devices: Set<Device>
@@ -23,6 +24,10 @@ class DisplayAndBuzzerUserCommunication(override val id: String, val display: St
     override suspend fun goodbye() {
         (display as? BackLightDisplay)?.backLight(false)
         buzzer.didado()
+    }
+
+    override suspend fun notify() {
+        buzzer.heyHo()
     }
 
     override suspend fun alert() {

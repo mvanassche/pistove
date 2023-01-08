@@ -46,7 +46,9 @@ class FuzzyTests {
         val tempBasedState = fumesTemperature.apply(LinearFunction(Pair(250.0, 0.5), Pair(120.0, 0.0))).map { min(max(it, 0.0), 0.5) }
         val dyingFlamesTempBasedState = fumesTemperature.apply(LinearFunction(Pair(250.0, 0.9), Pair(180.0, 0.6))).map { min(max(it, 0.6), 0.9) }
 
-        val ignitionSpeedBasedState = fumesTemperatureSpeed.apply(LinearFunction(Pair(0.0, 0.3), Pair(250.0, 1.0))).map { min(max(it, 0.3), 1.0) }
+        val ignitionSpeedBasedState = fumesTemperatureSpeed.apply(LinearFunction(Pair(0.0, 0.4), Pair(250.0, 1.0)))
+            .map { max(it, tempBasedState.state) }
+            .map { min(max(it, 0.4), 1.0) }
 
         val r1 = ignition and not(fullFire) implies ignitionSpeedBasedState //1.0 // implies ValveOpenRate(1.0)
         val r2 = fullFire implies 1.0
@@ -212,6 +214,16 @@ class FuzzyTests {
         //assertEquals(idle, inferredStates.maxBy { it.state.confidence })
         println(openRate)
         println("Rate ${openRate.state})\n")
+
+
+        fumesTemperature.state = 240.0
+        fumesTemperatureSpeed.state = -90.0
+        timeSinceLastRechargingNotification.state = 1.toDuration(DurationUnit.MINUTES)
+        println("ignition: ${ignition.state.confidence} fullFire: ${fullFire.state.confidence} dying: ${dyingFlames.state.confidence} embers: ${embers.state.confidence} discharging: ${discharging.state.confidence} idle: ${idle.state.confidence}")
+        //assertEquals(idle, inferredStates.maxBy { it.state.confidence })
+        println(openRate)
+        println("Rate ${openRate.state})\n")
+        assertTrue { openRate.state.value > 0.5  }
 
     }
 

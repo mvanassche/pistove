@@ -34,7 +34,8 @@ class SlowlyCloseWhenCooling(
     override val valve: ElectricValveController,
     override val fumes: TemperatureSensor,
     val daFumes: StateFlow<InstantValue<Double>>,
-    val lastUserValveRate: PersistentStateWithTimestamp<Double?>
+    val lastUserValveRate: PersistentStateWithTimestamp<Double?>,
+    val lastTimeRecharged: PersistentStateWithTimestamp<Unit>
 ) : AutoModeController(), Sampleable {
 
     override var enabled = true
@@ -116,7 +117,7 @@ class SlowlyCloseWhenCooling(
         val warming = FunctionOverStateFuzzyAtom("warming", FuzzyTrueFrom(20.0, 10.0), daFumesState) // > 20°/h  +/- 10
 
 
-        val recharging = FunctionOverStateFuzzyAtom("recharged", FuzzyTrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), PersistentState(1000.toDuration(DurationUnit.HOURS))) // TODO FIXME
+        val recharging = FunctionOverStateFuzzyAtom("recharged", FuzzyTrueUntilDuration(10.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), lastTimeRecharged.timeSinceLastChange)
 
         val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom("user said so", TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
         //val userRecentlyChangedOpenRate = AlwaysFalseCondition
@@ -131,7 +132,9 @@ class SlowlyCloseWhenCooling(
         val tempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.5), Pair(120.0, 0.0))).map { min(max(it, 0.0), 0.5) }
         val dyingFlamesTempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.9), Pair(180.0, 0.6))).map { min(max(it, 0.6), 0.9) }
 
-        val ignitionSpeedBasedState = daFumesState.apply(LinearFunction(Pair(0.0, 0.3), Pair(250.0, 1.0))).map { min(max(it, 0.3), 1.0) }
+        val ignitionSpeedBasedState = daFumesState.apply(LinearFunction(Pair(0.0, 0.4), Pair(250.0, 1.0)))
+            .map { max(it, tempBasedState.state) }
+            .map { min(max(it, 0.4), 1.0) }
 
         val r1 = ignition and not(fullFire) implies ignitionSpeedBasedState //1.0 // implies ValveOpenRate(1.0)
         val r2 = fullFire implies 1.0
