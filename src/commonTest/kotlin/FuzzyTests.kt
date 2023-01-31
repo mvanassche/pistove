@@ -46,18 +46,19 @@ class FuzzyTests {
         val tempBasedState = fumesTemperature.apply(LinearFunction(Pair(250.0, 0.5), Pair(120.0, 0.0))).map { min(max(it, 0.0), 0.5) }
         val dyingFlamesTempBasedState = fumesTemperature.apply(LinearFunction(Pair(250.0, 0.9), Pair(180.0, 0.6))).map { min(max(it, 0.6), 0.9) }
 
-        val ignitionSpeedBasedState = fumesTemperatureSpeed.apply(LinearFunction(Pair(0.0, 0.4), Pair(250.0, 1.0)))
+        val ignitionSpeedBasedState = fumesTemperatureSpeed.apply(LinearFunction(Pair(0.0, 0.2), Pair(250.0, 1.0)))
             .map { max(it, tempBasedState.state) }
-            .map { min(max(it, 0.4), 1.0) }
+            .map { min(max(it, 0.2), 1.0) }
 
         val r1 = ignition and not(fullFire) implies ignitionSpeedBasedState //1.0 // implies ValveOpenRate(1.0)
-        val r2 = fullFire implies 1.0
+        val r2 = fullFire and not(userRecentlyChangedOpenRate) implies 1.0
         val r2b = dyingFlames and not(userRecentlyChangedOpenRate) implies dyingFlamesTempBasedState
         val r3 = embers and not(userRecentlyChangedOpenRate) implies tempBasedState
         val r4 = (discharging or idle) and not(userRecentlyChangedOpenRate) implies 0.0
-        val r5 = userRecentlyChangedOpenRate implies lastUserValveRate.map { it ?: 1.0 }
+        val r5 = not(fullFire) and userRecentlyChangedOpenRate implies lastUserValveRate.map { it ?: 1.0 }
+        val r5b = fullFire and userRecentlyChangedOpenRate implies lastUserValveRate.map { it ?: 1.0 }.map { max(it, 0.4) }
 
-        val openRate = or(listOf(r1, r2, r2b, r3, r4, r5))
+        val openRate = or(listOf(r1, r2, r2b, r3, r4, r5, r5b))
 
 
         println("ignition: ${ignition.state.confidence} fullFire: ${fullFire.state.confidence} dying: ${dyingFlames.state.confidence} embers: ${embers.state.confidence} discharging: ${discharging.state.confidence} idle: ${idle.state.confidence}")

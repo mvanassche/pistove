@@ -38,6 +38,7 @@ interface GPIODigitalInput : GPIOProtocol {
 
 interface I2CBusDevice : GPIOProtocol {
     suspend fun <T> transact(process: suspend I2CBusDeviceTransaction.() -> T): T
+    suspend fun writes(vararg byte: Byte) { transact { write(byte.toTypedArray().toByteArray()) } }
     suspend fun write(bytes: ByteArray) { transact { write(bytes) } }
     suspend fun read(bytes: ByteArray) { transact { read(bytes) } }
 }
