@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -35,6 +36,10 @@ fun main() {
 
     runBlocking {
         stove.userCommunication.welcome()
+        launch {
+            delay(30000)
+            stove.userCommunication.notify()
+        }
         launch { stove.startControlling() }
         if(display != null) {
             launch {
@@ -76,6 +81,13 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
 
         routing {
             get("/") {
+                call.respondText(
+                    this::class.java.classLoader.getResource("index.html")!!.readText(),
+                    ContentType.Text.Html
+                )
+            }
+            // move to client side!!??
+            /*get("/") {
                 call.respondHtml(HttpStatusCode.OK) {
                     head {
                         title {
@@ -84,17 +96,52 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         script(src = "/static/pistove.js") {}
                     }
                     body {
-                        style= "min-height: 95vh;" +
+                        style= "min-height: 90vh;" +
                                 "display: flex;" +
-                                "flex-direction: column;"
+                                "flex-direction: column;" +
+                                "margin-top: 20px;"
                         div {
+                            input {
+                                id = "air-intake-valve-rate"
+                                style = "width: 200px;"
+                                type = InputType.range
+                                onChange = "fetch('/rate/' + this.value);"
+                                onInput = "this.changing = true;"
+                                onMouseUp = "this.changing = false;"
+                                onTouchStart = "this.changing = true;"
+                                onTouchEnd = "this.changing = false;"
+                                min = "0"
+                                max = "1"
+                                step = "0.1"
+                                list = "open-rates"
+                            }
+                            dataList {
+                                style = "display: flex;" +
+                                        "flex-direction: column;" +
+                                        "justify-content: space-between;" +
+                                        "writing-mode: vertical-lr;" +
+                                        "width: 200px;"
+                                id="open-rates"
+                                (0..10).forEach {
+                                    option {
+                                        value = "${it * 10}"
+                                        label = "${it * 10}%"
+                                        style = "padding: 0;"
+                                    }
+                                }
+                            }
                             button {
+                                onClick = "fetch('/command/recharged');"
+                                +"Recharge"
+                            }
+                            /*button {
                                 onClick = "var r = window.prompt('open rate', '0.5'); fetch('/rate/' + r);"
                                 +"set valve open rate"
-                            }
+                            }*/
                         }
                         div {
                             id = "status"
+                            style = "white-space: break-spaces;"
                         }
                         div {
                             id = "config"
@@ -112,14 +159,35 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                         }
                     }
                 }
-            }
+            }*/
             get("/shutdown") {
                 System.exit(0)
+            }
+            // TODO: GET vs POST vs WS message with command classes?
+            get("/rate/{rate}") {
+                call.parameters["rate"]?.toDoubleOrNull()?.let {
+                    stove.setOpenRateTo(it)
+                }
+                call.respondText("ok")
+            }
+            get("/command/recharged") {
+                stove.onRecharged()
+                call.respondText("ok")
             }
             webSocket("/ws/stove-controller") {
                 while(true) {
                     try {
                         outgoing.trySend(Frame.Text(encodeToString(module, stove)))
+                        delay(3.seconds)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+            webSocket("/ws/status") {
+                while(true) {
+                    try {
+                        outgoing.trySend(Frame.Text(Json.encodeToString(stove.physicalStatus)))
                         delay(3.seconds)
                     } catch (e: Exception) {
                         e.printStackTrace()

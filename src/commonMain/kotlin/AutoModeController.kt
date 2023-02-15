@@ -132,9 +132,9 @@ class SlowlyCloseWhenCooling(
         val tempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.5), Pair(120.0, 0.0))).map { min(max(it, 0.0), 0.5) }
         val dyingFlamesTempBasedState = fumesState.apply(LinearFunction(Pair(250.0, 0.9), Pair(180.0, 0.6))).map { min(max(it, 0.6), 0.9) }
 
-        val ignitionSpeedBasedState = daFumesState.apply(LinearFunction(Pair(0.0, 0.2), Pair(250.0, 1.0)))
+        val ignitionSpeedBasedState = daFumesState.apply(LinearFunction(Pair(0.0, 0.3), Pair(200.0, 1.0)))
             .map { max(it, tempBasedState.state) }
-            .map { min(max(it, 0.2), 1.0) }
+            .map { min(max(it, 0.3), 1.0) }
 
         val r1 = ignition and not(fullFire) implies ignitionSpeedBasedState //1.0 // implies ValveOpenRate(1.0)
         val r2 = fullFire and not(userRecentlyChangedOpenRate) implies 1.0

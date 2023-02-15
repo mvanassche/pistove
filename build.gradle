@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'me.maxime'
-version = '1.3-SNAPSHOT'
+version = '1.4-SNAPSHOT'
 
 repositories {
     mavenLocal()
@@ -41,6 +41,7 @@ kotlin {
                 implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
                 implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1"
                 implementation "io.github.microutils:kotlin-logging:3.0.4"
+                implementation("org.jetbrains.kotlinx:kotlinx-html:0.8.0")
             }
         }
         commonTest {
@@ -111,7 +112,7 @@ shadowJar {
 }
 
 task deployOnPi {
-    dependsOn(clean) // this may be stupid, but kotlin serialization compiler plugin has an issue, on the second build without clean, it complains about serizalizers not found.
+    //dependsOn(clean) // this may be stupid, but kotlin serialization compiler plugin has an issue, on the second build without clean, it complains about serizalizers not found.
     dependsOn(shadowJar)
     doLast {
         exec {

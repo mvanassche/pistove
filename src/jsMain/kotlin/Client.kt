@@ -3,9 +3,12 @@ import kotlinx.browser.window
 import kotlinx.dom.clear
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.MessageEvent
 import org.w3c.dom.WebSocket
+import kotlinx.html.*
+import kotlinx.html.dom.*
+import org.w3c.dom.HTMLElement
+import pistove.status.physical.temperatureLabel
 
 fun main() {
     val wsProtocol = if(window.location.protocol.startsWith("https")) "wss" else "ws"
@@ -19,7 +22,7 @@ fun main() {
             }
         }*/
 
-        val socket2 = WebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/stove-controller")
+        /*val socket2 = WebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/stove-controller")
         socket2.onmessage = { event: MessageEvent ->
             event.data?.let {
                 val stoveController = it.toString().decode<StoveController>(module) // TODO no way to decode from dynamic directly?
@@ -36,7 +39,37 @@ fun main() {
                 /*document.getElementById("config")?.textContent =
                     "Fumes: ${stoveController.fumes.lastValue?.value} (${stoveController.fumes.lastValue?.time})"*/
             }
+        }*/
+
+        reconnectingWebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/status") { event: MessageEvent ->
+            event.data?.let {
+                val controller = Json.decodeFromString<pistove.status.physical.Controller>(it.toString())
+                val status = document.getElementById("status")
+                //status?.clear()
+
+                status?.querySelector("#auto-mode")?.let { it.textContent = if(controller.autoMode) "Auto" else "Manual" }
+                status?.querySelector("#environment .temperature")?.let { it.textContent = controller.controlledEnvironment.temperature.temperatureLabel() }
+                status?.querySelector("#house .temperature")?.let { it.textContent = controller.controlledEnvironment.house.temperature.temperatureLabel() }
+                status?.querySelector("#valve")?.let {
+                    it.textContent = controller.controlledEnvironment.house.stove.valve.toString()
+                    it.setAttribute("style", "--open-rate: ${controller.controlledEnvironment.house.stove.valve?.nominalRate};")
+                }
+                status?.querySelector("#fire .temperature")?.let { it.textContent = controller.controlledEnvironment.house.stove.burningChamber.temperature.temperatureLabel() }
+                status?.querySelector("#accumulator .temperature")?.let { it.textContent = controller.controlledEnvironment.house.stove.accumulator.temperature.temperatureLabel() }
+                status?.querySelector("#accumulator .charge")?.let { it.textContent = "${controller.controlledEnvironment.house.stove.accumulator.chargedRate?.value?.let { it * 100.0 }?.toString(0)}%" }
+                status?.querySelector("#accumulator")?.let { it.setAttribute("style", "--charged-rate: ${controller.controlledEnvironment.house.stove.accumulator.chargedRate?.value};") }
+
+                //status?.innerHTML = controller.toString()
+
+                document.getElementById("air-intake-valve-rate-input")?.let {
+                    val nominalRate = controller.controlledEnvironment.house.stove.valve?.nominalRate
+                    if(nominalRate != null && !it.asDynamic().changing as Boolean) {
+                        it.asDynamic().value = nominalRate
+                    }
+                }
+            }
         }
+
 
         val historyDiv = document.getElementById("history")
         val historyDataSelectionDiv = document.getElementById("history-data-selection")
@@ -84,3 +117,17 @@ fun Identifiable.prettyString() : String? {
     }
     return null
 }
+
+fun reconnectingWebSocket(url: String, onMessage: (event: MessageEvent) -> Unit) {
+    var socketStatus = WebSocket(url)
+    socketStatus.onmessage = onMessage
+    socketStatus.onclose = {
+        socketStatus.close()
+        window.setTimeout({ reconnectingWebSocket(url, onMessage) }, 10000)
+    }
+    socketStatus.onerror = {
+        socketStatus.close()
+        window.setTimeout({ reconnectingWebSocket(url, onMessage) }, 10000)
+    }
+}
+

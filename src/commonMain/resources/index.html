@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Stove</title>
+        <script src="/static/pistove.js"></script>
+        <link href="static/index.css" rel="stylesheet">
+    </head>
+    <body>
+        <div>
+            <div id="air-intake-valve-rate">
+                <input id="air-intake-valve-rate-input" type="range"
+                        onchange="fetch('/rate/' + this.value);"
+                        oninput="this.changing = true;"
+                        onmouseup="this.changing = false;"
+                        ontouchstart="this.changing = true;"
+                        ontouchend="this.changing = false;"
+                        min="0" max="1" step = "0.1"
+                        list="open-rates"/>
+                <dataList id="open-rates">
+                    <option value="0.0" label="0%"></option>
+                    <option value="0.1" label=""></option>
+                    <option value="0.2" label="20%"></option>
+                    <option value="0.3" label=""></option>
+                    <option value="0.4" label="40%"></option>
+                    <option value="0.5" label=""></option>
+                    <option value="0.6" label="60%"></option>
+                    <option value="0.7" label=""></option>
+                    <option value="0.8" label="80%"></option>
+                    <option value="0.9" label=""></option>
+                    <option value="1.0" label="100%"></option>
+
+                </dataList>
+            </div>
+            <button id="command-recharged" onclick="fetch('/command/recharged');">➕</button>
+
+        </div>
+        <div id="status">
+            <section id="controller">
+                <section id="auto-mode"></section>
+                <section id="environment">
+                    <section class="temperature"></section>
+                    <section id="house">
+                        <section class="temperature"></section>
+                        <section id="stove">
+                            <section id="valve"></section>
+                            <section id="fire">
+                                <section class="temperature"></section>
+                            </section>
+                            <section id="accumulator">
+                                <section class="temperature"></section>
+                                <section class="charge"></section>
+                            </section>
+                        </section>
+                    </section>
+                </section>
+            </section>
+        </div>
+        <div id="config"></div>
+        <div id="history-periods"></div>
+        <div id="history-data-selection"></div>
+        <div id="history"></div>
+    </body>
+</html>

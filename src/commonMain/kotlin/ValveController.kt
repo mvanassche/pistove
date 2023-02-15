@@ -12,7 +12,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
 
 @Serializable
-sealed interface ValveState
+sealed interface ValveState {
+    val nominalRate: Double
+}
 
 @Serializable
 sealed interface KnownValveState : ValveState {
@@ -22,6 +24,8 @@ sealed interface KnownValveState : ValveState {
 @Serializable
 sealed interface MovingValveState : ValveState {
     val targetOpenRate: Double
+    override val nominalRate: Double
+        get() = targetOpenRate
 }
 
 @Serializable
@@ -57,6 +61,8 @@ class ResetOpeningValveState(override val targetOpenRate: Double, val startedAt:
 
 @Serializable
 class NotMovingValveState(override val openRate: Double) : KnownValveState {
+    override val nominalRate: Double
+        get() = openRate
     override fun toString(): String {
         return when(openRate) {
             0.0 -> "closed"

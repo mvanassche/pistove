@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import pistove.status.physical.Environment
 import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -170,6 +171,29 @@ class StoveController(
             listOf(/*outside.stateMessage(), */valve.stateMessage(), autoModeController?.stateMessage() ?: "")
         )
     }
+
+    val physicalStatus: pistove.status.physical.Controller
+        get() {
+            return pistove.status.physical.Controller(
+                autoModeController?.enabled ?: false,
+                emptyList(),
+                pistove.status.physical.Environment(
+                    outside.lastValue,
+                    pistove.status.physical.House(
+                        room.lastValue,
+                        pistove.status.physical.WoodStove(
+                            valve.state,
+                            pistove.status.physical.StoveBurningChamber(fumes.lastValue),
+                            pistove.status.physical.HeatAccumulator(
+                                accumulator.lastValue,
+                                chargedRate?.value
+                            )
+                        )
+                    )
+                )
+            )
+        }
+
 
 }
 
