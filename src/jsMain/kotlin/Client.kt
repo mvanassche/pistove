@@ -1,47 +1,19 @@
 import kotlinx.browser.document
 import kotlinx.browser.window
-import kotlinx.dom.clear
+import kotlinx.dom.addClass
+import kotlinx.dom.hasClass
+import kotlinx.dom.removeClass
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.w3c.dom.MessageEvent
 import org.w3c.dom.WebSocket
-import kotlinx.html.*
-import kotlinx.html.dom.*
-import org.w3c.dom.HTMLElement
 import pistove.status.physical.temperatureLabel
 
 fun main() {
     val wsProtocol = if(window.location.protocol.startsWith("https")) "wss" else "ws"
     window.onload = {
-        /*val socket = WebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/stove")
-        socket.onmessage = { event: MessageEvent ->
-            event.data?.let {
-                val stove = Json.decodeFromString<Stove>(it.toString()) // TODO no way to decode from dynamic directly?
-                document.getElementById("status")?.textContent =
-                    "\uD83D\uDD25 ${stove.fireTemperature}°C \uD83D\uDCA8 ${stove.airIntake} \uD83C\uDFE0 ${stove.inRoom.temperature}"
-            }
-        }*/
 
-        /*val socket2 = WebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/stove-controller")
-        socket2.onmessage = { event: MessageEvent ->
-            event.data?.let {
-                val stoveController = it.toString().decode<StoveController>(module) // TODO no way to decode from dynamic directly?
-                val config = document.getElementById("config")
-                config?.clear()
-                stoveController.identifieables.forEach { identifiable ->
-                    identifiable.prettyString()?.also { label ->
-                        document.createElement("div").also {
-                            it.textContent = label
-                            config?.append(it)
-                        }
-                    }
-                }
-                /*document.getElementById("config")?.textContent =
-                    "Fumes: ${stoveController.fumes.lastValue?.value} (${stoveController.fumes.lastValue?.time})"*/
-            }
-        }*/
-
-        reconnectingWebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/status") { event: MessageEvent ->
+        val status = ReconnectingWebSocket("$wsProtocol://${window.location.hostname}:${window.location.port}/ws/status") { event: MessageEvent ->
             event.data?.let {
                 val controller = Json.decodeFromString<pistove.status.physical.Controller>(it.toString())
                 val status = document.getElementById("status")
@@ -70,8 +42,26 @@ fun main() {
             }
         }
 
+        document.addEventListener("visibilitychange", {
+            when(document.asDynamic().visibilityState) {
+                "hidden" -> status.pause()
+                "visible" -> status.resume()
+                else -> status.resume()
+            }
+        })
 
-        val historyDiv = document.getElementById("history")
+        // history
+
+        document.getElementById("show-history")?.addEventListener("click", {
+            document.getElementById("history")?.let {
+                if(it.hasClass("visible")) {
+                    it.removeClass("visible")
+                } else {
+                    it.addClass("visible")
+                }
+            }
+        })
+        val historyDiv = document.getElementById("history-graph")
         val historyDataSelectionDiv = document.getElementById("history-data-selection")
 
 
@@ -80,7 +70,6 @@ fun main() {
             select.append(document.createElement("option"))
             document.getElementById("history-periods")?.append(select)
             select.addEventListener("change", {
-                println(select.asDynamic().value)
                 window.fetch("/history/${select.asDynamic().value}").then {
                     it.text().then {
                         showHistoryIn(historyDiv, historyDataSelectionDiv, historyFormat.decodeFromString(it))
@@ -118,16 +107,39 @@ fun Identifiable.prettyString() : String? {
     return null
 }
 
-fun reconnectingWebSocket(url: String, onMessage: (event: MessageEvent) -> Unit) {
-    var socketStatus = WebSocket(url)
-    socketStatus.onmessage = onMessage
-    socketStatus.onclose = {
-        socketStatus.close()
-        window.setTimeout({ reconnectingWebSocket(url, onMessage) }, 10000)
+
+class ReconnectingWebSocket(val url: String, val onMessage: (event: MessageEvent) -> Unit) {
+    var socket: WebSocket? = null
+    var running = false
+
+    init {
+        resume()
     }
-    socketStatus.onerror = {
-        socketStatus.close()
-        window.setTimeout({ reconnectingWebSocket(url, onMessage) }, 10000)
+
+    fun pause() {
+        running = false
+        socket?.close()
+        socket = null
+    }
+
+    fun resume() {
+        if (!running) {
+            running = true
+            socket = WebSocket(url).apply {
+                onmessage = onMessage
+                onclose = {
+                    if (running) {
+                        close()
+                        window.setTimeout({ resume() }, 10000)
+                    }
+                }
+                onerror = {
+                    if (running) {
+                        close()
+                        window.setTimeout({ resume() }, 10000)
+                    }
+                }
+            }
+        }
     }
 }
-

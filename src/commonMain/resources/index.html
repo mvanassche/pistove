@@ -32,7 +32,7 @@
 
                 </dataList>
             </div>
-            <button id="command-recharged" onclick="fetch('/command/recharged');">➕</button>
+            <button id="command-recharged" onclick="fetch('/command/recharged');"></button>
 
         </div>
         <div id="status">
@@ -56,9 +56,13 @@
                 </section>
             </section>
         </div>
-        <div id="config"></div>
-        <div id="history-periods"></div>
-        <div id="history-data-selection"></div>
-        <div id="history"></div>
+        <div id="history">
+            <button id="show-history">📈</button>
+            <div id="history-container">
+                <div id="history-periods"></div>
+                <div id="history-data-selection"></div>
+                <div id="history-graph"></div>
+            </div>
+        </div>
     </body>
 </html>

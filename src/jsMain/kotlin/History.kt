@@ -1,9 +1,13 @@
 import kotlinx.browser.document
 import kotlinx.datetime.toJSDate
+import kotlinx.dom.clear
 import org.w3c.dom.Element
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 
 fun showHistoryIn(historyElement: Element, historyDataSelectionElement: Element, history: Array<StoveControllerHistoryPoint>) {
+    historyDataSelectionElement.clear()
     val keys = history.keys()
     val graphKeys = keys.map { it.first + "." + it.second }
     //val keys = listOf(Pair("stove-thermometer", "temperature"))
@@ -14,6 +18,10 @@ fun showHistoryIn(historyElement: Element, historyDataSelectionElement: Element,
     val options = js("{}")
     options.labels = labels.toTypedArray()
     options.showRangeSelector = true
+    history.lastOrNull()?.let {
+        options.dateWindow = listOf(it.atTimePoint.minus(1.toDuration(DurationUnit.DAYS)), it.atTimePoint).map { it.toJSDate() }.toTypedArray()
+    }
+
     //options.logscale =  js("{ x : false, y : true }")
     val d = Dygraph(historyElement, data, options)
     graphKeys.forEachIndexed { dataIndex, dataName ->
@@ -24,7 +32,7 @@ fun showHistoryIn(historyElement: Element, historyDataSelectionElement: Element,
             document.createElement("input").also {
                 it.setAttribute("type", "checkbox")
                 it.setAttribute("checked", "true")
-                it.addEventListener("change", { event ->
+                it.addEventListener("change", { _ ->
                     d.setVisibility(dataIndex, it.asDynamic().checked);
                 })
                 span.append(it)
@@ -58,7 +66,12 @@ external class Dygraph(div: Element, data: Array<Array<Any?>>, attrs: Array<Stri
     fun ready(onReady: () -> Unit)
     fun setAnnotations(annotations: Array<dynamic>)
     fun setVisibility(dataIndex: Int, visible: Boolean)
+    /*@JsModule("dygraphs/src-es5/extras/synchronizer.js")
+    companion object {
+        fun synchronize(graphs: Array<Dygraph>)
+    }*/
 }
+
 
 fun dygraphAnnotation(series: String, x: Any, shortText: String? = null, longText: String? = null): dynamic {
     val result = js("{}")
@@ -69,3 +82,6 @@ fun dygraphAnnotation(series: String, x: Any, shortText: String? = null, longTex
     result.longText = longText
     return result
 }
+
+
+
