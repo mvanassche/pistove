@@ -117,8 +117,9 @@ class Pi4JRasperryPi : RaspberryPi {
     }
 
     @Synchronized
-    override fun spi(channel: Int): GPIOSPI {
+    override fun spi(bus: Int, channel: Int): GPIOSPI {
         val config = Spi.newConfigBuilder(context)
+            .bus(bus)
             .address(channel)
             .baud(500000) //Spi.DEFAULT_BAUD) // TODO is that a parameter?
             .build()
@@ -126,8 +127,14 @@ class Pi4JRasperryPi : RaspberryPi {
         val spi = spiProvider.create(config)
         spi.open()
         return object : GPIOSPI {
-            override fun transfer(bytes: ByteArray) {
-                spi.transfer(bytes)
+            override fun transfer(bytes: ByteArray): Result {
+                return spi.transfer(bytes).let {
+                    if(it < 0) {
+                        ErrorResult(it as Any)
+                    } else {
+                        OKResult()
+                    }
+                }
             }
         }
     }

@@ -18,9 +18,9 @@ fun stoveController(): StoveController {
     val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 6)
     val valve = ElectricValveController("air-intake-valve", powerRelay = powerRelay, openCloseRelay = openCloseRelay)
     //val fumes = TestTemperatureSensor("stove-thermometer").also { it.usefulPrecision = 0 }
-    val fumes = MAX31855TemperaturSensor("stove-thermometer", 0).also { it.usefulPrecision = 0 }
+    val fumes = MAX31855TemperaturSensor("stove-thermometer", 0, 0).also { it.usefulPrecision = 0 }
     //val accumulator = EmptyTemperatureSensor("accumulator-thermometer")
-    val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 1).also { it.usefulPrecision = 0 }
+    val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 0, 1).also { it.usefulPrecision = 0 }
     val room = SHT31TemperaturSensor("room-thermometer", 1, 0x45).also { it.usefulPrecision = 1 }
     val outsideTemperatureSensor = DS18B20TempartureSensor("outside-thermometer", 0x1b9c071e64ff.toULong()).also { it.usefulPrecision = 0 }
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)

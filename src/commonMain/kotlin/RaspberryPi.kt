@@ -11,7 +11,7 @@ interface RaspberryPi {
 
     fun pwm(bcm: Int, hardware: Boolean): GPIOPWM
 
-    fun spi(channel: Int): GPIOSPI
+    fun spi(bus: Int, channel: Int): GPIOSPI
 
     suspend fun availableOneWireDevices(): Set<OneWireDevice>
     fun oneWireDevice(id: OneWireDeviceId): OneWireDevice?
@@ -19,6 +19,10 @@ interface RaspberryPi {
     fun addBeforeShutdown(handler: (RaspberryPi) -> Unit)
 
 }
+
+sealed class Result
+class OKResult: Result()
+class ErrorResult(val errorCode: Any): Result()
 
 interface GPIOProtocol
 
@@ -56,7 +60,7 @@ interface GPIOPWM : GPIOProtocol {
 }
 
 interface GPIOSPI : GPIOProtocol {
-    fun transfer(bytes: ByteArray)
+    fun transfer(bytes: ByteArray): Result
 }
 
 @Serializable
@@ -112,9 +116,9 @@ object DummyPi : RaspberryPi {
         }
     }
 
-    override fun spi(channel: Int): GPIOSPI {
+    override fun spi(bus: Int, channel: Int): GPIOSPI {
         return object : GPIOSPI {
-            override fun transfer(bytes: ByteArray) {}
+            override fun transfer(bytes: ByteArray): Result { return OKResult() }
         }
     }
 

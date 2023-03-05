@@ -117,7 +117,7 @@ class SlowlyCloseWhenCooling(
         val warming = FunctionOverStateFuzzyAtom("warming", FuzzyTrueFrom(20.0, 10.0), daFumesState) // > 20°/h  +/- 10
 
 
-        val recharging = FunctionOverStateFuzzyAtom("recharged", FuzzyTrueUntilDuration(10.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), lastTimeRecharged.timeSinceLastChange)
+        val recharging = FunctionOverStateFuzzyAtom("recharged", FuzzyTrueUntilDuration(30.toDuration(DurationUnit.MINUTES), 10.toDuration(DurationUnit.MINUTES)), lastTimeRecharged.timeSinceLastChange)
 
         val userRecentlyChangedOpenRate = FunctionOverStateFuzzyAtom("user said so", TrueUntilDuration(10.toDuration(DurationUnit.MINUTES)), lastUserValveRate.timeSinceLastChange)
         //val userRecentlyChangedOpenRate = AlwaysFalseCondition

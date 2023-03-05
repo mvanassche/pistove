@@ -1,11 +1,14 @@
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import mu.KotlinLogging
 import kotlin.math.roundToInt
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Serializable
 class DS18B20TempartureSensor(override var id: String, val address: ULong) : BaseTemperatureSensor() {
+
+    private val logger = KotlinLogging.logger {}
 
     @Transient
     val oneWire by lazy {
@@ -31,7 +34,7 @@ class DS18B20TempartureSensor(override var id: String, val address: ULong) : Bas
                     return null
                 }
             } catch (e: Exception) {
-                println("$id: ${e.message}")
+                logger.error { "$id: ${e.message}" }
                 return null
             }
         } else {
