@@ -50,7 +50,7 @@ body {
 #command-recharged {
     position: absolute;
     bottom: 50px;
-    right: 75px;
+    right: 65px;
     font-size: 100px;
     background-image: url(firestarter.svg);
     width: 1em;
@@ -71,6 +71,10 @@ body {
     height: 100%;
     /* position: relative; */
     z-index: -1;
+}
+
+#status.outdated {
+    filter: blur(2px);
 }
 
 #controller {
@@ -203,6 +207,7 @@ element.style {
     border: orange solid 5px;
     border-radius: 15px;
     margin-left: 20px;
+    color: white;
 }
 
 #accumulator:before {
@@ -314,11 +319,18 @@ element.style {
 }
 
 #show-history {
-    font-size: 20px;
+    width: 1em;
+    height: 1em;
+    font-size: 30px;
     position: absolute;
     right: 10px;
     top: 10px;
     z-index: 100;
+    background-image: url(chart.svg);
+    background-repeat: no-repeat;
+    background-size: 90% 90%;
+    background-position: 50% 50%;
+
 }
 
 #history.visible #show-history {
@@ -344,4 +356,9 @@ element.style {
     position: absolute;
     right: 0px;
     top: 50px;
+}
+
+#logs {
+    font-size: 12px;
+    color: grey;
 }

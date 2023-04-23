@@ -17,6 +17,7 @@ fun List<String>.castFor(params: Array<Parameter>): List<Any> {
             when(it.second.type) {
                 String::class.java -> it.first
                 Int::class.java -> it.first.toInt()
+                Boolean::class.java -> it.first.toBoolean()
                 else -> it.second.type.getConstructor(String::class.java).newInstance(it.first)
             }
     }

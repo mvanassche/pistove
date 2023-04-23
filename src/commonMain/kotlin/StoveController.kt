@@ -24,9 +24,9 @@ fun stoveController(): StoveController {
     val room = SHT31TemperaturSensor("room-thermometer", 1, 0x45).also { it.usefulPrecision = 1 }
     val outsideTemperatureSensor = DS18B20TempartureSensor("outside-thermometer", 0x1b9c071e64ff.toULong()).also { it.usefulPrecision = 0 }
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
-    val openButton = PushButtonGPIO("open-button", 13)
-    val closeButton = PushButtonGPIO("close-button", 26)
-    val rechargeButton = PushButtonGPIO("recharge-button", 19)
+    val openButton = PushButtonGPIO("open-button", 13, DigitalState.high)
+    val closeButton = PushButtonGPIO("close-button", 26, DigitalState.high)
+    val rechargeButton = PushButtonGPIO("recharge-button", 19, DigitalState.high)
     val display = Display1602LCDI2C("display", 1, 0x27)
     val comm = DisplayAndBuzzerUserCommunication("user-communication", display, buzzer)
     return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, openButton, closeButton, rechargeButton, comm)

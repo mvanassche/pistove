@@ -19,8 +19,12 @@ data class Controller(
     }
 }
 
+fun String?.orNot(): String {
+    return this ?: "?"
+}
+
 fun InstantValue<Double>?.temperatureLabel(): String {
-    return "${this?.value?.toString(1)}°C"
+    return "${this?.value?.toString(1).orNot()}°C"
 }
 
 @Serializable

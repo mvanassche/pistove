@@ -30,7 +30,9 @@ class Pi4JRasperryPi : RaspberryPi {
             .address(bcm)
             .initial(defaultState.toPi4j())
             .shutdown(defaultState.toPi4j())
-        val pdo = context.dout<DigitalOutputProvider>().create<DigitalOutput>(config)
+            .provider("pigpio-digital-output")
+        val pdo = context.create(config)
+        //dout<DigitalOutputProvider>().create<DigitalOutput>(config)
         return object : GPIODigitalOutput {
             override var state: DigitalState?
                 get() = pdo.state().toState()

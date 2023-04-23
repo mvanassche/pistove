@@ -27,6 +27,10 @@ class ErrorResult(val errorCode: Any): Result()
 interface GPIOProtocol
 
 enum class DigitalState { low, high }
+fun DigitalState.not() = when(this) {
+    DigitalState.low -> DigitalState.high
+    DigitalState.high -> DigitalState.low
+}
 
 enum class PullResistance { pull_up, pull_down }
 

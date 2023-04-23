@@ -9,12 +9,17 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Serializable
-class PushButtonGPIO(override val id: String, val bcm: Int) : PushButton(), TestableDevice {
+open class PushButtonGPIO(override val id: String, val bcm: Int, val activeState: DigitalState) : PushButton(), TestableDevice {
+    val inactiveState = activeState.not()
     override suspend fun startSensing() {
-        val input = pi.gpioDigitalInput(bcm, PullResistance.pull_down, 3.toDuration(DurationUnit.MILLISECONDS))
+        val pullUpDown = when(activeState) {
+            DigitalState.low -> PullResistance.pull_up
+            DigitalState.high -> PullResistance.pull_down
+        }
+        val input = pi.gpioDigitalInput(bcm, pullUpDown, 3.toDuration(DurationUnit.MILLISECONDS))
         var pushedAt: Instant? = null
         input.addOnChangeListener {
-            if(it == DigitalState.low) {
+            if(it == inactiveState) {
                 val now = Clock.System.now()
                 pushedAt = now
                 GlobalScope.launch {
@@ -26,7 +31,7 @@ class PushButtonGPIO(override val id: String, val bcm: Int) : PushButton(), Test
 
                 }
             }
-            if(it == DigitalState.high) {
+            if(it == activeState) {
                 if(pushedAt != null) {
                     pushed()
                 }

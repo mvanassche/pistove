@@ -53,3 +53,36 @@ sealed class PushButton : Sensor {
 }
 
 
+@Serializable
+sealed class ToggleButton : Sensor {
+    @Transient
+    val changeListeners = mutableListOf<(Boolean) -> Unit>()
+
+    fun addChangeListener(listener: (Boolean) -> Unit) {
+        changeListeners.add(listener)
+    }
+    fun removeChangeListener(listener: (Boolean) -> Unit) {
+        changeListeners.remove(listener)
+    }
+    protected fun changed(pushed: Boolean) {
+        changeListeners.forEach { it(pushed) }
+    }
+}
+
+@Serializable
+sealed interface RotatyButton : Sensor {
+
+    @Transient
+    val changeListeners: MutableList<(Int) -> Unit>
+
+    fun addChangeListener(listener: (Int) -> Unit) {
+        changeListeners.add(listener)
+    }
+    fun removeChangeListener(listener: (Int) -> Unit) {
+        changeListeners.remove(listener)
+    }
+    fun changed(counter: Int) {
+        changeListeners.forEach { it(counter) }
+    }
+}
+
