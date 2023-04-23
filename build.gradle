@@ -5,8 +5,8 @@ plugins {
     id 'application'
 }
 
-group = 'me.maxime'
-version = '1.4-SNAPSHOT'
+group = 'io.github.mvanassche.pistove'
+version = '2.0-SNAPSHOT'
 
 repositories {
     mavenLocal()

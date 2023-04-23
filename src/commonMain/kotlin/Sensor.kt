@@ -75,14 +75,16 @@ sealed interface RotatyButton : Sensor {
     @Transient
     val changeListeners: MutableList<(Int) -> Unit>
 
+    val counter: Int
+
     fun addChangeListener(listener: (Int) -> Unit) {
         changeListeners.add(listener)
     }
     fun removeChangeListener(listener: (Int) -> Unit) {
         changeListeners.remove(listener)
     }
-    fun changed(counter: Int) {
-        changeListeners.forEach { it(counter) }
+    fun changed(diff: Int) {
+        changeListeners.forEach { it(diff) }
     }
 }
 

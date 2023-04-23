@@ -14,22 +14,21 @@ import kotlin.time.Duration.Companion.seconds
 
 
 fun stoveController(): StoveController {
-    val powerRelay = LowActiveGPIOElectricRelay("power-relay", 5)
-    val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 6)
+    val powerRelay = LowActiveGPIOElectricRelay("power-relay", 23)
+    val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 24)
     val valve = ElectricValveController("air-intake-valve", powerRelay = powerRelay, openCloseRelay = openCloseRelay)
     //val fumes = TestTemperatureSensor("stove-thermometer").also { it.usefulPrecision = 0 }
-    val fumes = MAX31855TemperaturSensor("stove-thermometer", 0, 0).also { it.usefulPrecision = 0 }
+    val fumes = MAX31855TemperaturSensor("stove-thermometer", 1, 2).also { it.usefulPrecision = 0 }
     //val accumulator = EmptyTemperatureSensor("accumulator-thermometer")
-    val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 0, 1).also { it.usefulPrecision = 0 }
+    val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 1, 0).also { it.usefulPrecision = 0 }
+    // TODO val outFumes = MAX31855TemperaturSensor("accumulator-thermometer", 1, 1).also { it.usefulPrecision = 0 }
     val room = SHT31TemperaturSensor("room-thermometer", 1, 0x45).also { it.usefulPrecision = 1 }
     val outsideTemperatureSensor = DS18B20TempartureSensor("outside-thermometer", 0x1b9c071e64ff.toULong()).also { it.usefulPrecision = 0 }
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
-    val openButton = PushButtonGPIO("open-button", 13, DigitalState.high)
-    val closeButton = PushButtonGPIO("close-button", 26, DigitalState.high)
-    val rechargeButton = PushButtonGPIO("recharge-button", 19, DigitalState.high)
-    val display = Display1602LCDI2C("display", 1, 0x27)
-    val comm = DisplayAndBuzzerUserCommunication("user-communication", display, buzzer)
-    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, openButton, closeButton, rechargeButton, comm)
+    val rotary = RotaryPushButtonGPIO("rotary", 6, 5 , 0)
+    val rechargeButton = rotary
+    val comm = BuzzerUserCommunication("user-communication", buzzer)
+    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, rotary, rechargeButton, comm)
 }
 
 @Serializable
@@ -40,8 +39,7 @@ class StoveController(
     val accumulator: TemperatureSensor,
     val room: TemperatureSensor,
     val outside: TemperatureSensor,
-    val openButton: PushButton,
-    val closeButton: PushButton,
+    val openCloseRotary: RotatyButton,
     val rechargeButton: PushButton,
     val userCommunication: BasicUserCommunication
 ) : Controller {
@@ -63,6 +61,7 @@ class StoveController(
 
     @Transient
     var autoModeController: AutoModeController? = null
+
 
     override suspend fun startControlling(): Boolean {
         // ??? what to do? should we start all here or assume they are started elsewhere?
@@ -89,13 +88,9 @@ class StoveController(
             launch { accumulator.startSensing() }
             launch { room.startSensing() }
             launch { outside.startSensing() }
-            launch { openButton.startSensing() }
-            launch { closeButton.startSensing() }
+            launch { openCloseRotary.startSensing() }
             launch { rechargeButton.startSensing() }
-            openButton.addOnClickListener { this.launch { openSome() } }
-            closeButton.addOnClickListener { this.launch { closeSome() } }
-            openButton.addOnLongClickListener { this.launch { open() } }
-            closeButton.addOnLongClickListener { this.launch { close() } }
+            openCloseRotary.addChangeListener { diff -> this.launch { setOpenRateTo((valve.openRateOrTarget ?: 1.0) + (0.05 * diff)) } }
             rechargeButton.addOnClickListener { this.launch { onRecharged() } }
             identifieables.filterIsInstance<WatcheableState>().forEach {
                 it.addOnStateChange { launch { refreshDisplay() } }
@@ -118,7 +113,7 @@ class StoveController(
     }
 
     override val devices: Set<Device>
-        get() = setOf(fumes, accumulator, room, outside, openButton, closeButton, rechargeButton) + valve.devices + userCommunication.devices
+        get() = setOf(fumes, accumulator, room, outside, openCloseRotary, rechargeButton) + valve.devices + userCommunication.devices
 
     override val identifieables: Set<Identifiable>
         get() = devices + valve + (autoModeController?.let { setOf(it) } ?: emptySet())
