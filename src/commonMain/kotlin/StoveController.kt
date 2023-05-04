@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import pistove.status.physical.Chimney
 import pistove.status.physical.Environment
 import kotlin.math.max
 import kotlin.time.Duration.Companion.minutes
@@ -21,14 +22,15 @@ fun stoveController(): StoveController {
     val fumes = MAX31855TemperaturSensor("stove-thermometer", 1, 2).also { it.usefulPrecision = 0 }
     //val accumulator = EmptyTemperatureSensor("accumulator-thermometer")
     val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 1, 0).also { it.usefulPrecision = 0 }
-    // TODO val outFumes = MAX31855TemperaturSensor("accumulator-thermometer", 1, 1).also { it.usefulPrecision = 0 }
+    //val chimney = EmptyTemperatureSensor("chimney-thermometer").also { it.usefulPrecision = 0 }
+    val chimney = MAX31855TemperaturSensor("chimney-thermometer", 1, 1).also { it.usefulPrecision = 0 }
     val room = SHT31TemperaturSensor("room-thermometer", 1, 0x45).also { it.usefulPrecision = 1 }
     val outsideTemperatureSensor = DS18B20TempartureSensor("outside-thermometer", 0x1b9c071e64ff.toULong()).also { it.usefulPrecision = 0 }
     val buzzer = PassivePiezoBuzzerHardwarePWM("buzzer", 12)
     val rotary = RotaryPushButtonGPIO("rotary", 6, 5 , 0)
     val rechargeButton = rotary
     val comm = BuzzerUserCommunication("user-communication", buzzer)
-    return StoveController("stove", valve, fumes, accumulator, room, outsideTemperatureSensor, rotary, rechargeButton, comm)
+    return StoveController("stove", valve, fumes, accumulator, chimney, room, outsideTemperatureSensor, rotary, rechargeButton, comm)
 }
 
 @Serializable
@@ -37,6 +39,7 @@ class StoveController(
     val valve: ElectricValveController,
     val fumes: TemperatureSensor,
     val accumulator: TemperatureSensor,
+    val chimney: TemperatureSensor,
     val room: TemperatureSensor,
     val outside: TemperatureSensor,
     val openCloseRotary: RotatyButton,
@@ -86,6 +89,7 @@ class StoveController(
             launch { valve.startControlling() }
             launch { fumes.startSensing() }
             launch { accumulator.startSensing() }
+            launch { chimney.startSensing() }
             launch { room.startSensing() }
             launch { outside.startSensing() }
             launch { openCloseRotary.startSensing() }
@@ -113,7 +117,7 @@ class StoveController(
     }
 
     override val devices: Set<Device>
-        get() = setOf(fumes, accumulator, room, outside, openCloseRotary, rechargeButton) + valve.devices + userCommunication.devices
+        get() = setOf(fumes, accumulator, room, chimney, outside, openCloseRotary, rechargeButton) + valve.devices + userCommunication.devices
 
     override val identifieables: Set<Identifiable>
         get() = devices + valve + (autoModeController?.let { setOf(it) } ?: emptySet())
@@ -182,7 +186,8 @@ class StoveController(
                             pistove.status.physical.HeatAccumulator(
                                 accumulator.lastValue,
                                 chargedRate?.value
-                            )
+                            ),
+                            Chimney(chimney.lastValue)
                         )
                     )
                 )

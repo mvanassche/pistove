@@ -36,10 +36,6 @@ fun main() {
 
     runBlocking {
         stove.userCommunication.welcome()
-        launch {
-            delay(30000)
-            stove.userCommunication.notify()
-        }
         launch { stove.startControlling() }
         if(display != null) {
             launch {

@@ -47,6 +47,7 @@ fun main() {
                     status?.querySelector("#accumulator .temperature")?.let { it.textContent = controller.controlledEnvironment.house.stove.accumulator.temperature.temperatureLabel() }
                     status?.querySelector("#accumulator .charge")?.let { it.textContent = "${controller.controlledEnvironment.house.stove.accumulator.chargedRate?.value?.let { it * 100.0 }?.toString(0).orNot()}%" }
                     status?.querySelector("#accumulator")?.let { it.setAttribute("style", "--charged-rate: ${controller.controlledEnvironment.house.stove.accumulator.chargedRate?.value};") }
+                    status?.querySelector("#chimney .temperature")?.let { it.textContent = controller.controlledEnvironment.house.stove.chimney.temperature.temperatureLabel() }
 
                     //status?.innerHTML = controller.toString()
 

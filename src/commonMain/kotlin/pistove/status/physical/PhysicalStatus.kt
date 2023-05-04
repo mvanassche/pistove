@@ -44,7 +44,7 @@ data class House(val temperature: InstantValue<Double>?, val stove: WoodStove) {
 
 
 @Serializable
-data class WoodStove(val valve: ValveState?, val burningChamber: StoveBurningChamber, val accumulator: HeatAccumulator) {
+data class WoodStove(val valve: ValveState?, val burningChamber: StoveBurningChamber, val accumulator: HeatAccumulator, val chimney: Chimney) {
     override fun toString(): String {
         return "$burningChamber\n" +
                 "$accumulator\n" +
@@ -71,5 +71,12 @@ data class StoveBurningChamber(val temperature: InstantValue<Double>?) {
 data class HeatAccumulator(val temperature: InstantValue<Double>?, val chargedRate: InstantValue<Double>?) {
     override fun toString(): String {
         return "\uD83D\uDD0B: ${chargedRate?.value?.let { it * 100.0 }?.toString(0)}% (${temperature.temperatureLabel()})"
+    }
+}
+
+@Serializable
+data class Chimney(val temperature: InstantValue<Double>?) {
+    override fun toString(): String {
+        return "░: ${temperature.temperatureLabel()}"
     }
 }
