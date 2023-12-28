@@ -13,6 +13,11 @@ sudo apt-get install pigpio
 
 ## Stove
 
+
+- (Manual air valve register)[https://www.jpvos.be/nl/dixneuf-warmeluchtroosters-toe-afvoer/9882-register-met-kabel-diam160-met-messing-knop.html?controllerUri=product]
+- (Belimo LM230A)[https://www.ventilatieland.be/fr_BE/p/belimo-servomotor-230v-o-d-5-nm-lm230a-tp/8749/] note: you can probably go with a much smaller and cheaper model
+- (Air valve register)[https://www.ventilatieland.be/nl_BE/p/motorbediende-regelklep-o-160mm-voor-spirobuis/8945/]
+
 ## Raspberry Pi
 
 - (ceramic oven probe, k type thermocouple)[https://www.amazon.com.be/ceramic-mounting-thermocouple-sensor-temperature/dp/B09XX7Y9TY]
@@ -21,6 +26,7 @@ sudo apt-get install pigpio
 - (SHT31-F)[https://shop.mchobby.be/fr/environnemental-press-temp-hrel-gaz/1882-sht31-f-capteur-d-humidite-et-temperature-3232100018822-dfrobot.html]
 - (Piezo buzzer)[https://shop.mchobby.be/fr/autres-capteurs/57-piezo-buzzer-3232100000575.html]
 - (DS18B20)[https://shop.mchobby.be/fr/environnemental-press-temp-hrel-gaz/151-capteur-temperature-ds18b20-etanche-extra-3232100001510.html]
+- (Relay 5v | 2-canals)[https://www.bol.com/be/nl/p/otronic-relais-module-5v-2-kanaals-arduino-esp32-esp8266-raspberry-pi-wemos/9300000011396590/]
 
 ### Version pi zero 2 W
 
