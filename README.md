@@ -22,13 +22,13 @@ sudo apt-get install pigpio
 
 There are 2 versions, a cheaper version with limited display, and a more expensive with a touch screen. For both versions, a web page exposes a user interface (the same as the touch screen).  
 
-- [ceramic oven probe, k type thermocouple](https://www.amazon.com.be/ceramic-mounting-thermocouple-sensor-temperature/dp/B09XX7Y9TY)
+- [ceramic oven probe, k type thermocouple](https://www.amazon.com.be/ceramic-mounting-thermocouple-sensor-temperature/dp/B09XX7Y9TY) for the hot fumes
 - [MAX31855 - V2.0](https://shop.mchobby.be/fr/temperature/302-amplificateur-thermocouple-max31855-v20-3232100003026-adafruit.html)
-- [Thermocouple Type-K](https://shop.mchobby.be/fr/temperature/301-thermocouple-type-k-3232100003019.html)
-- [SHT31-F](https://shop.mchobby.be/fr/environnemental-press-temp-hrel-gaz/1882-sht31-f-capteur-d-humidite-et-temperature-3232100018822-dfrobot.html)
+- [Thermocouple Type-K](https://shop.mchobby.be/fr/temperature/301-thermocouple-type-k-3232100003019.html) for the cold fumes and the accumulator t°
+- [SHT31-F](https://shop.mchobby.be/fr/environnemental-press-temp-hrel-gaz/1882-sht31-f-capteur-d-humidite-et-temperature-3232100018822-dfrobot.html) for indoor t°
 - [Piezo buzzer](https://shop.mchobby.be/fr/autres-capteurs/57-piezo-buzzer-3232100000575.html)
-- [DS18B20](https://shop.mchobby.be/fr/environnemental-press-temp-hrel-gaz/151-capteur-temperature-ds18b20-etanche-extra-3232100001510.html)
-- [Relay 5v | 2-canals](https://www.bol.com/be/nl/p/otronic-relais-module-5v-2-kanaals-arduino-esp32-esp8266-raspberry-pi-wemos/9300000011396590/)
+- [DS18B20](https://shop.mchobby.be/fr/environnemental-press-temp-hrel-gaz/151-capteur-temperature-ds18b20-etanche-extra-3232100001510.html) for outside t°
+- [Relay 5v | 2-canals](https://www.bol.com/be/nl/p/otronic-relais-module-5v-2-kanaals-arduino-esp32-esp8266-raspberry-pi-wemos/9300000011396590/) to control the register
 
 ### Version pi zero 2 W
 
