@@ -49,7 +49,7 @@ class EmptyTemperatureSensor(override val id: String) : BaseTemperatureSensor() 
     @Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
 
-    override suspend fun sampleValue() = null
+    override suspend fun sampleValue() = 123.0
 }
 
 

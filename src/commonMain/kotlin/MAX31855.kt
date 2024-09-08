@@ -3,7 +3,7 @@ import mu.KotlinLogging
 // inspired by https://github.com/twyatt/pi-max31855/blob/master/src/com/traviswyatt/pi/max31855/MAX31855.java
 
 
-class MAX31855(val bus: Int, val channel: Int) {
+class MAX31855(val name: String, val bus: Int, val channel: Int) {
     private val logger = KotlinLogging.logger {}
 
     var spi: GPIOSPI = pi.spi(bus = bus, channel = channel)
@@ -43,7 +43,7 @@ class MAX31855(val bus: Int, val channel: Int) {
                 }
             }
             is ErrorResult -> {
-                logger.error { "Error writing to SPI $channel: ${transferResult.errorCode}" }
+                logger.error { "Error writing to SPI $channel: ${transferResult.errorCode} ($name)" }
                 return null
             }
         }
@@ -79,11 +79,11 @@ class MAX31855(val bus: Int, val channel: Int) {
             } else {
                 if(faults != null) {
                     if ((faults and FAULT_OPEN_CIRCUIT_BIT.toInt()) == FAULT_OPEN_CIRCUIT_BIT.toInt())
-                        logger.error { "MAX31855 channel $channel: open circuit" }
+                        logger.error { "MAX31855 channel $channel: open circuit ($name)" }
                     if ((faults and FAULT_SHORT_TO_GND_BIT.toInt()) == FAULT_SHORT_TO_GND_BIT.toInt())
-                        logger.error { "MAX31855 channel $channel: shortcut to ground" }
+                        logger.error { "MAX31855 channel $channel: shortcut to ground ($name)" }
                     if ((faults and FAULT_SHORT_TO_VCC_BIT.toInt()) == FAULT_SHORT_TO_VCC_BIT.toInt())
-                        logger.error { "MAX31855 channel $channel: shortcut to VCC" }
+                        logger.error { "MAX31855 channel $channel: shortcut to VCC ($name)" }
                 }
                 Float.NaN
             }
