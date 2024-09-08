@@ -11,7 +11,7 @@ import kotlin.time.toDuration
 class MAX31855TemperaturSensor(override val id: String, val bus: Int, val channel: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
 
     @Transient
-    val max = MAX31855(bus= bus, channel = channel)
+    val max = MAX31855(bus= bus, channel = channel, name = id)
 
     override var lastValue: InstantValue<Double>? = null
 
