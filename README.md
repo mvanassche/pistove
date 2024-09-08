@@ -47,3 +47,30 @@ There are 2 versions, a cheaper version with limited display, and a more expensi
 ### Pi wiring
 
 # Software
+
+## Pi
+
+`sudo nano /etc/xdg/lxsession/LXDE-pi/autostart`
+
+```
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver -no-splash
+@/etc/xdg/lxsession/LXDE-pi/stove-kiosk.sh
+```
+
+`sudo nano /etc/rc.local`
+
+```
+(cd /home/pi/stove/ && sudo java -jar pistove-2.0-SNAPSHOT-all.jar)
+```
+
+`sudo nano /etc/xdg/lxsession/LXDE-pi/stove-kiosk.sh`
+
+```
+  GNU nano 5.4                                                         /etc/xdg/lxsession/LXDE-pi/stove-kiosk.sh
+#!/bin/bash
+
+(sleep 20 && chromium-browser --kiosk http://localhost:8080/)
+
+```
