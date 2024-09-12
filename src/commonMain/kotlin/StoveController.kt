@@ -19,9 +19,9 @@ fun stoveController(): StoveController {
     val openCloseRelay = LowActiveGPIOElectricRelay( "direction-relay", 24)
     val valve = ElectricValveController("air-intake-valve", powerRelay = powerRelay, openCloseRelay = openCloseRelay)
     //val fumes = TestTemperatureSensor("stove-thermometer").also { it.usefulPrecision = 0 }
-    val fumes = MAX31855TemperaturSensor("stove-thermometer", 1, 2).also { it.usefulPrecision = 0 }
+    val fumes = MAX31855TemperaturSensor("stove-thermometer", 1, 0).also { it.usefulPrecision = 0 }
     //val accumulator = EmptyTemperatureSensor("accumulator-thermometer")
-    val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 1, 0).also { it.usefulPrecision = 0 }
+    val accumulator = MAX31855TemperaturSensor("accumulator-thermometer", 1, 2).also { it.usefulPrecision = 0 }
     //val chimney = EmptyTemperatureSensor("chimney-thermometer").also { it.usefulPrecision = 0 }
     val chimney = MAX31855TemperaturSensor("chimney-thermometer", 1, 1).also { it.usefulPrecision = 0 }
     val room = SHT31TemperaturSensor("room-thermometer", 1, 0x45).also { it.usefulPrecision = 1 }
