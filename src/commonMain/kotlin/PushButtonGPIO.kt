@@ -19,7 +19,7 @@ open class PushButtonGPIO(override val id: String, val bcm: Int, val activeState
         val input = pi.gpioDigitalInput(bcm, pullUpDown, 3.toDuration(DurationUnit.MILLISECONDS))
         var pushedAt: Instant? = null
         input.addOnChangeListener {
-            if(it == inactiveState) {
+            if(it == activeState) {
                 val now = Clock.System.now()
                 pushedAt = now
                 GlobalScope.launch {
@@ -31,7 +31,7 @@ open class PushButtonGPIO(override val id: String, val bcm: Int, val activeState
 
                 }
             }
-            if(it == activeState) {
+            if(it == inactiveState) {
                 if(pushedAt != null) {
                     pushed()
                 }

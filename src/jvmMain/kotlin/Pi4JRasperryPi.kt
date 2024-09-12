@@ -198,7 +198,7 @@ fun PullResistance.toPi4j() =
 
 
 actual fun raspberryPiFromEnvironment(): RaspberryPi {
-    if(System.getProperty("os.arch") == "arm") { // TODO be more precise to make sure we are on pi.
+    if(System.getProperty("os.arch") in listOf("arm", "aarch64")) { // TODO be more precise to make sure we are on pi.
         return Pi4JRasperryPi()
     } else {
         return DummyPi
