@@ -3,12 +3,16 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
+import mu.KotlinLogging
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Serializable
 class MAX31855TemperaturSensor(override val id: String, val bus: Int, val channel: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
+
+    @Transient
+    private val logger = KotlinLogging.logger {}
 
     @Transient
     val max = MAX31855(bus= bus, channel = channel, name = id)
@@ -22,6 +26,7 @@ class MAX31855TemperaturSensor(override val id: String, val bus: Int, val channe
         return max.temperature.let {
             if(!it.isNaN()) {
                 it.toDouble()
+                    .also { logger.debug { "$id: $it°C" } }
             } else {
                 null
             }
@@ -29,7 +34,7 @@ class MAX31855TemperaturSensor(override val id: String, val bus: Int, val channe
     }
 
     override suspend fun test() {
-        repeat(10) {
+        repeat(1000) {
             println("$this: ${sampleValue()}°C")
             delay(500)
         }

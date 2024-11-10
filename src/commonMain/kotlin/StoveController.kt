@@ -89,7 +89,7 @@ class StoveController(
             launch { valve.startControlling() }
             launch { fumes.startSensing() }
             launch { accumulator.startSensing() }
-            launch { chimney.startSensing() }
+            //launch { chimney.startSensing() }
             launch { room.startSensing() }
             launch { outside.startSensing() }
             launch { openCloseRotary.startSensing() }

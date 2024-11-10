@@ -24,7 +24,7 @@ fun String?.orNot(): String {
 }
 
 fun InstantValue<Double>?.temperatureLabel(): String {
-    return "${this?.value?.toString(1).orNot()}°C"
+    return this?.value?.toString(1)?.let { "$it°C" } ?: ""
 }
 
 @Serializable
