@@ -6,7 +6,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Serializable
-class DS18B20TempartureSensor(override var id: String, val address: ULong) : BaseTemperatureSensor() {
+class DS18B20TempartureSensor(override var id: String, val address: ULong) : BaseTemperatureSensor(), FaultReporting {
 
     private val logger = KotlinLogging.logger {}
 
@@ -20,6 +20,9 @@ class DS18B20TempartureSensor(override var id: String, val address: ULong) : Bas
 
     override var lastValue: InstantValue<Double>? = null
 
+    override var lastFault: InstantValue<String>? = null
+        private set
+
     override suspend fun sampleValue(): Double? {
         if(oneWire != null) {
             try {
@@ -31,13 +34,18 @@ class DS18B20TempartureSensor(override var id: String, val address: ULong) : Bas
                     val temp = content.lines()[1].substringAfter("t=").toInt().toDouble() / 1000.0
                     return (temp * 10.0).roundToInt().toDouble() / 10.0 // rounding to 1 decimal?
                 } else {
+                    logger.error { "$id: CRC check failed reading one-wire device" }
+                    lastFault = InstantValue("CRC check failed reading one-wire device")
                     return null
                 }
             } catch (e: Exception) {
                 logger.error { "$id: ${e.message}" }
+                lastFault = InstantValue(e.message ?: e.toString())
                 return null
             }
         } else {
+            logger.error { "$id: one-wire device not found on bus" }
+            lastFault = InstantValue("one-wire device not found on bus")
             return null
         }
     }

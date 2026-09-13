@@ -12,6 +12,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -19,6 +20,8 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+
+private val utilsLogger = KotlinLogging.logger {}
 
 
 interface Identifiable {
@@ -139,6 +142,24 @@ sealed class BaseSamplingValuesSensor<V>(
                 flow.emit(timedSample)
             }
         }
+    }
+
+    /**
+     * For an optional sensor that may or may not be physically wired up: instead of sensing right away,
+     * keep probing every [retryPeriod] until [sampleValue] first succeeds, then fall into the normal
+     * [startSensing] loop. Lets a sensor be plugged in, unplugged, or never installed at all without
+     * any code change or restart — it's picked up automatically as soon as it starts answering.
+     */
+    suspend fun startSensingWhenAvailable(retryPeriod: Duration = 30.toDuration(DurationUnit.SECONDS)) {
+        var reportedMissing = false
+        while(sampleValue() == null) {
+            if(!reportedMissing) {
+                utilsLogger.warn { "$id: not detected, will keep retrying every $retryPeriod" }
+                reportedMissing = true
+            }
+            delay(retryPeriod.inWholeMilliseconds)
+        }
+        startSensing()
     }
 
     /*override suspend fun lastValue(): InstantValue<V> {

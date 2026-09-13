@@ -174,9 +174,10 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                 while(true) {
                     try {
                         outgoing.trySend(Frame.Text(encodeToString(module, stove)))
-                        delay(3.seconds)
                     } catch (e: Exception) {
                         e.printStackTrace()
+                    } finally {
+                        delay(3.seconds)
                     }
                 }
             }
@@ -184,9 +185,27 @@ fun startWebServer(stove: StoveController): ApplicationEngine {
                 while(true) {
                     try {
                         outgoing.trySend(Frame.Text(Json.encodeToString(stove.physicalStatus)))
-                        delay(3.seconds)
                     } catch (e: Exception) {
                         e.printStackTrace()
+                    } finally {
+                        delay(3.seconds)
+                    }
+                }
+            }
+            get("/diagnostics") {
+                call.respondText(
+                    this::class.java.classLoader.getResource("diagnostics.html")!!.readText(),
+                    ContentType.Text.Html
+                )
+            }
+            webSocket("/ws/diagnostics") {
+                while(true) {
+                    try {
+                        outgoing.trySend(Frame.Text(format.encodeToString(stove.diagnostics())))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        delay(2.seconds)
                     }
                 }
             }

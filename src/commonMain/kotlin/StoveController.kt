@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -87,11 +88,11 @@ class StoveController(
             }
 
             launch { valve.startControlling() }
-            launch { fumes.startSensing() }
-            launch { accumulator.startSensing() }
-            //launch { chimney.startSensing() }
-            launch { room.startSensing() }
-            launch { outside.startSensing() }
+            launch { fumes.startSensing() } // required: the auto mode controller can't work without it
+            launch { accumulator.startSensingWhenAvailable() }
+            launch { chimney.startSensingWhenAvailable() }
+            launch { room.startSensingWhenAvailable() }
+            launch { outside.startSensingWhenAvailable() }
             launch { openCloseRotary.startSensing() }
             launch { rechargeButton.startSensing() }
             openCloseRotary.addChangeListener { diff -> this.launch { setOpenRateTo((valve.openRateOrTarget ?: 1.0) + (0.05 * diff)) } }
@@ -171,11 +172,25 @@ class StoveController(
         )
     }
 
+    /**
+     * The controller can't do anything sensible without fumes readings (the auto mode logic is built around
+     * them) — unlike the other, purely-informational sensors, which are allowed to be absent, see [TemperatureSensor.startSensingWhenAvailable].
+     */
+    val fumesOperational: Boolean
+        get() {
+            val lastValueTime = fumes.lastValue?.time ?: return false
+            val stalePeriod = (fumes as? BaseSamplingValuesSensor<*>)?.samplingPeriod?.times(3) ?: 30.seconds
+            return (Clock.System.now() - lastValueTime) < stalePeriod
+        }
+
+    val operationalMessages: List<String>
+        get() = if (!fumesOperational) listOf("${fumes.id} unavailable — controller is not functional, auto mode can't run without it") else emptyList()
+
     val physicalStatus: pistove.status.physical.Controller
         get() {
             return pistove.status.physical.Controller(
                 autoModeController?.enabled ?: false,
-                emptyList(),
+                operationalMessages,
                 pistove.status.physical.Environment(
                     outside.lastValue,
                     pistove.status.physical.House(

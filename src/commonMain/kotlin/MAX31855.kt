@@ -9,6 +9,13 @@ class MAX31855(val name: String, val bus: Int, val channel: Int) {
     var spi: GPIOSPI = pi.spi(bus = bus, channel = channel)
 
     /**
+     * Most recent problem seen on this channel (read failure or chip-reported fault), kept
+     * around (not cleared on a later successful read) so a diagnostics view can show it.
+     */
+    var lastFault: InstantValue<String>? = null
+        private set
+
+    /**
      * Read raw temperature data.
      *
      * @param raw Array of raw temperatures whereas index 0 = internal, 1 = themocouple
@@ -19,7 +26,10 @@ class MAX31855(val name: String, val bus: Int, val channel: Int) {
 
         val BUFFER = ByteArray(4) // no need: it is initialized to 0 { 0.toByte() }
         val transferResult = spi.transfer(BUFFER)
-        if(BUFFER.all { it == 0x00.toByte() }) return null // TODO no other way to detect issue? seems not.
+        if(BUFFER.all { it == 0x00.toByte() }) {
+            lastFault = InstantValue("no response (all-zero read) on channel $channel")
+            return null // TODO no other way to detect issue? seems not.
+        }
         when(transferResult) {
             is OKResult -> {
                 val data: Int = BUFFER[0].toInt() and 0xFF shl 24 or
@@ -44,6 +54,7 @@ class MAX31855(val name: String, val bus: Int, val channel: Int) {
             }
             is ErrorResult -> {
                 logger.error { "Error writing to SPI $channel: ${transferResult.errorCode} ($name)" }
+                lastFault = InstantValue("SPI error on channel $channel: ${transferResult.errorCode}")
                 return null
             }
         }
@@ -78,12 +89,17 @@ class MAX31855(val name: String, val bus: Int, val channel: Int) {
                 getThermocoupleTemperature(raw[1])
             } else {
                 if(faults != null) {
+                    val faultMessages = mutableListOf<String>()
                     if ((faults and FAULT_OPEN_CIRCUIT_BIT.toInt()) == FAULT_OPEN_CIRCUIT_BIT.toInt())
-                        logger.error { "MAX31855 channel $channel: open circuit ($name)" }
+                        faultMessages += "open circuit"
                     if ((faults and FAULT_SHORT_TO_GND_BIT.toInt()) == FAULT_SHORT_TO_GND_BIT.toInt())
-                        logger.error { "MAX31855 channel $channel: shortcut to ground ($name)" }
+                        faultMessages += "shortcut to ground"
                     if ((faults and FAULT_SHORT_TO_VCC_BIT.toInt()) == FAULT_SHORT_TO_VCC_BIT.toInt())
-                        logger.error { "MAX31855 channel $channel: shortcut to VCC ($name)" }
+                        faultMessages += "shortcut to VCC"
+                    faultMessages.forEach { logger.error { "MAX31855 channel $channel: $it ($name)" } }
+                    if (faultMessages.isNotEmpty()) {
+                        lastFault = InstantValue("channel $channel: ${faultMessages.joinToString(", ")}")
+                    }
                 }
                 Float.NaN
             }

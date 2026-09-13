@@ -3,14 +3,21 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import mu.KotlinLogging
 import kotlin.math.roundToInt
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Serializable
-class SHT31TemperaturSensor(override val id: String, val bus: Int, val device: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
+class SHT31TemperaturSensor(override val id: String, val bus: Int, val device: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice, FaultReporting {
+
+    @Transient
+    private val logger = KotlinLogging.logger {}
 
     override var lastValue: InstantValue<Double>? = null
+
+    override var lastFault: InstantValue<String>? = null
+        private set
 
     @Transient
     override val samplingPeriod = 1.toDuration(DurationUnit.SECONDS)
@@ -23,25 +30,31 @@ class SHT31TemperaturSensor(override val id: String, val bus: Int, val device: I
         super.startSensing()
     }
 
-    override suspend fun sampleValue(): Double {
+    override suspend fun sampleValue(): Double? {
         val data = ByteArray(6)
         // Send high repeatability measurement command
         // Command msb, command lsb
         val command = ByteArray(2)
         command[0] = 0x2C.toByte()
         command[1] = 0x06.toByte()
-        _device.transact {
-            write(command)
-            delay(15)
-            // Read 6 bytes of data
-            // temp msb, temp lsb, temp CRC, humidity msb, humidity lsb, humidity CRC
-            read(data)
-        }
-        // TODO check CRC!!
+        return try {
+            _device.transact {
+                write(command)
+                delay(15)
+                // Read 6 bytes of data
+                // temp msb, temp lsb, temp CRC, humidity msb, humidity lsb, humidity CRC
+                read(data)
+            }
+            // TODO check CRC!!
 
-        val cTemp: Double = ((data[0].toUByte().toInt() shl(8)) + (data[1].toUByte().toInt())) * 175.0 / 65535.0 - 45.0
-        //val humidity: Double = ((data[3].toUByte().toInt() shl(8)) + (data[4].toUByte().toInt())) * 100.0 / 65535.0
-        return (cTemp * 10.0).roundToInt().toDouble() / 10.0 // rounding to 1 decimal?
+            val cTemp: Double = ((data[0].toUByte().toInt() shl(8)) + (data[1].toUByte().toInt())) * 175.0 / 65535.0 - 45.0
+            //val humidity: Double = ((data[3].toUByte().toInt() shl(8)) + (data[4].toUByte().toInt())) * 100.0 / 65535.0
+            (cTemp * 10.0).roundToInt().toDouble() / 10.0 // rounding to 1 decimal?
+        } catch (e: Exception) {
+            logger.error { "$id: ${e.message}" }
+            lastFault = InstantValue(e.message ?: e.toString())
+            null
+        }
     }
 
     override suspend fun test() {

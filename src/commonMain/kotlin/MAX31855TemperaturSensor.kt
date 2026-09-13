@@ -9,13 +9,16 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Serializable
-class MAX31855TemperaturSensor(override val id: String, val bus: Int, val channel: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice {
+class MAX31855TemperaturSensor(override val id: String, val bus: Int, val channel: Int) : TemperatureSensor, BaseTemperatureSensor(), TestableDevice, FaultReporting {
 
     @Transient
     private val logger = KotlinLogging.logger {}
 
     @Transient
     val max = MAX31855(bus= bus, channel = channel, name = id)
+
+    override val lastFault: InstantValue<String>?
+        get() = max.lastFault
 
     override var lastValue: InstantValue<Double>? = null
 

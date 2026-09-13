@@ -12,6 +12,7 @@ import com.pi4j.io.spi.Spi
 import com.pi4j.io.spi.SpiProvider
 import com.pi4j.plugin.pigpio.provider.pwm.PiGpioPwmProvider
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.UseSerializers
 import java.io.File
 import kotlin.io.path.Path
@@ -67,6 +68,10 @@ class Pi4JRasperryPi : RaspberryPi {
     // https://github.com/Pi4J/pi4j-v2/discussions/158 this is probably overkill, but I did reach some concurrency issues in the past, so better be safe than sorry
     val i2cBusesLocks = Array(10) { Mutex() } // TODO, there is smarter to do here (max 10 I2C buses?)
 
+    // same reasoning as i2cBusesLocks: several MAX31855s (different channels, same bus) get polled by independent
+    // coroutines, and transfer() below is a plain blocking call, so a lock object (not a suspending Mutex) serializes them.
+    val spiBusesLocks = Array(10) { Any() }
+
     override fun i2c(bus: Int, device: Int): I2CBusDevice {
         val config = I2C.newConfigBuilder(context)
             .bus(bus)
@@ -76,16 +81,16 @@ class Pi4JRasperryPi : RaspberryPi {
         val i2c: I2C = i2CProvider.create(config)
         return object : I2CBusDevice {
             override suspend fun <T> transact(process: suspend I2CBusDeviceTransaction.() -> T): T {
-                i2cBusesLocks[bus].lock()
-                return process(object: I2CBusDeviceTransaction {
-                    override fun write(bytes: ByteArray) {
-                        i2c.write(bytes)
-                    }
-                    override fun read(bytes: ByteArray) {
-                        i2c.read(bytes)
-                    }
-                })
-                .also { i2cBusesLocks[bus].unlock() }
+                return i2cBusesLocks[bus].withLock {
+                    process(object: I2CBusDeviceTransaction {
+                        override fun write(bytes: ByteArray) {
+                            i2c.write(bytes)
+                        }
+                        override fun read(bytes: ByteArray) {
+                            i2c.read(bytes)
+                        }
+                    })
+                }
             }
         }
     }
@@ -130,11 +135,13 @@ class Pi4JRasperryPi : RaspberryPi {
         spi.open()
         return object : GPIOSPI {
             override fun transfer(bytes: ByteArray): Result {
-                return spi.transfer(bytes).let {
-                    if(it < 0) {
-                        ErrorResult(it as Any)
-                    } else {
-                        OKResult()
+                return synchronized(spiBusesLocks[bus]) {
+                    spi.transfer(bytes).let {
+                        if(it < 0) {
+                            ErrorResult(it as Any)
+                        } else {
+                            OKResult()
+                        }
                     }
                 }
             }

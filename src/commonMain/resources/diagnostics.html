@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Stove diagnostics</title>
+        <style>
+            body {
+                font-family: monospace;
+                margin: 1em;
+                background: #111;
+                color: #ddd;
+            }
+            h1 {
+                font-size: 1.1em;
+            }
+            #connection {
+                margin-bottom: 1em;
+            }
+            #connection.connected { color: #6c6; }
+            #connection.disconnected { color: #c66; }
+            #operational {
+                margin-bottom: 1em;
+                padding: 0.5em 0.8em;
+                border-radius: 4px;
+            }
+            #operational.up { background: #113311; color: #6c6; }
+            #operational.down { background: #331111; color: #f77; }
+            #operational ul {
+                margin: 0.3em 0 0 0;
+                padding-left: 1.2em;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            th, td {
+                border: 1px solid #444;
+                padding: 0.4em 0.6em;
+                text-align: left;
+                white-space: nowrap;
+            }
+            th {
+                background: #222;
+            }
+            tr.ok { background: #113311; }
+            tr.stale { background: #332211; }
+            tr.fault { background: #331111; }
+            .age {
+                color: #999;
+                font-size: 0.9em;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Stove diagnostics</h1>
+        <div id="connection" class="disconnected">connecting...</div>
+        <div id="operational"></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>type</th>
+                    <th>last value</th>
+                    <th>status</th>
+                    <th>last fault</th>
+                </tr>
+            </thead>
+            <tbody id="devices"></tbody>
+        </table>
+        <script>
+            function ageLabel(seconds) {
+                if (seconds === null || seconds === undefined) return "";
+                if (seconds < 60) return seconds.toFixed(0) + "s ago";
+                if (seconds < 3600) return (seconds / 60).toFixed(0) + "m ago";
+                return (seconds / 3600).toFixed(1) + "h ago";
+            }
+
+            function renderOperational(snapshot) {
+                const el = document.getElementById("operational");
+                if (snapshot.operational) {
+                    el.className = "up";
+                    el.textContent = "controller operational";
+                } else {
+                    el.className = "down";
+                    el.innerHTML = "controller NOT operational" +
+                        "<ul>" + snapshot.messages.map(function (m) { return "<li>" + m + "</li>"; }).join("") + "</ul>";
+                }
+            }
+
+            function render(snapshot) {
+                renderOperational(snapshot);
+                const devices = snapshot.devices;
+                const tbody = document.getElementById("devices");
+                tbody.innerHTML = "";
+                devices.forEach(function (d) {
+                    const row = document.createElement("tr");
+                    const hasRecentFault = d.lastFaultAgeSeconds !== null && d.lastFaultAgeSeconds !== undefined
+                        && (d.lastValueAgeSeconds === null || d.lastFaultAgeSeconds < d.lastValueAgeSeconds);
+                    row.className = hasRecentFault ? "fault" : (d.stale ? "stale" : "ok");
+
+                    const valueCell = d.lastValue !== null && d.lastValue !== undefined
+                        ? d.lastValue + ' <span class="age">(' + ageLabel(d.lastValueAgeSeconds) + ')</span>'
+                        : '<span class="age">no reading yet</span>';
+
+                    const statusCell = hasRecentFault ? "FAULT" : (d.stale ? "STALE" : "ok");
+
+                    const faultCell = d.lastFault
+                        ? d.lastFault + ' <span class="age">(' + ageLabel(d.lastFaultAgeSeconds) + ')</span>'
+                        : "";
+
+                    row.innerHTML =
+                        "<td>" + d.id + "</td>" +
+                        "<td>" + d.type + "</td>" +
+                        "<td>" + valueCell + "</td>" +
+                        "<td>" + statusCell + "</td>" +
+                        "<td>" + faultCell + "</td>";
+                    tbody.appendChild(row);
+                });
+            }
+
+            const connectionLabel = document.getElementById("connection");
+            const wsProtocol = window.location.protocol.startsWith("https") ? "wss" : "ws";
+
+            let reconnectScheduled = false;
+
+            function connect() {
+                const socket = new WebSocket(wsProtocol + "://" + window.location.hostname + ":" + window.location.port + "/ws/diagnostics");
+                socket.onopen = function () {
+                    connectionLabel.textContent = "connected";
+                    connectionLabel.className = "connected";
+                };
+                socket.onmessage = function (event) {
+                    render(JSON.parse(event.data));
+                };
+                socket.onclose = socket.onerror = function () {
+                    connectionLabel.textContent = "disconnected, retrying...";
+                    connectionLabel.className = "disconnected";
+                    if (!reconnectScheduled) {
+                        reconnectScheduled = true;
+                        setTimeout(function () {
+                            reconnectScheduled = false;
+                            connect();
+                        }, 3000);
+                    }
+                };
+            }
+            connect();
+        </script>
+    </body>
+</html>
